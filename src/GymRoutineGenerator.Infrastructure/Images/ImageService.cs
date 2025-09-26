@@ -163,20 +163,20 @@ public class ImageService : IImageService
         return Path.Combine(_baseImageDirectory, "placeholders", "exercise_placeholder.png");
     }
 
-    public async Task<bool> ImageExistsAsync(string exerciseName, string position = "default")
+    public Task<bool> ImageExistsAsync(string exerciseName, string position = "default")
     {
         var imagePath = GetImagePath(exerciseName, position);
-        return !imagePath.Equals(GetPlaceholderImagePath()) && File.Exists(imagePath);
+        return Task.FromResult(!imagePath.Equals(GetPlaceholderImagePath()) && File.Exists(imagePath));
     }
 
-    public async Task<List<string>> GetExerciseImagesAsync(string exerciseName)
+    public Task<List<string>> GetExerciseImagesAsync(string exerciseName)
     {
         var sanitizedName = SanitizeFileName(exerciseName);
         var exerciseDir = Path.Combine(_baseImageDirectory, "exercises");
         var images = new List<string>();
 
         if (!Directory.Exists(exerciseDir))
-            return images;
+            return Task.FromResult(images);
 
         foreach (var position in _imagePositions)
         {
@@ -187,22 +187,22 @@ public class ImageService : IImageService
             }
         }
 
-        return images;
+        return Task.FromResult(images);
     }
 
-    public async Task<bool> DeleteImageAsync(string exerciseName, string position = "default")
+    public Task<bool> DeleteImageAsync(string exerciseName, string position = "default")
     {
         var imagePath = GetImagePath(exerciseName, position);
 
         if (imagePath.Equals(GetPlaceholderImagePath()))
-            return false;
+            return Task.FromResult(false);
 
         try
         {
             if (File.Exists(imagePath))
             {
                 File.Delete(imagePath);
-                return true;
+                return Task.FromResult(true);
             }
         }
         catch
@@ -210,7 +210,7 @@ public class ImageService : IImageService
             // Log error if needed
         }
 
-        return false;
+        return Task.FromResult(false);
     }
 
     private string SanitizeFileName(string fileName)
@@ -227,12 +227,12 @@ public class ImageService : IImageService
         return string.IsNullOrEmpty(sanitized) ? "exercise" : sanitized;
     }
 
-    private async Task CreatePlaceholderImageIfNeededAsync()
+    private Task CreatePlaceholderImageIfNeededAsync()
     {
         var placeholderPath = GetPlaceholderImagePath();
 
         if (File.Exists(placeholderPath))
-            return;
+            return Task.CompletedTask;
 
         try
         {
@@ -267,5 +267,7 @@ public class ImageService : IImageService
         {
             // If we can't create placeholder, that's OK - we'll handle missing images gracefully
         }
+
+        return Task.CompletedTask;
     }
 }

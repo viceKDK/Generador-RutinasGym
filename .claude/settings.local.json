@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(md-tree:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln add:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(dotnet add reference:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet run:*)",
+      "Bash(dotnet build)",
+      "Bash(dotnet build:*)",
+      "Bash(timeout:*)",
+      "Bash(del \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\GymRoutineGenerator.Core\\Models\\Documents\\DocumentModels.cs\")",
+      "Bash(findstr:*)",
+      "Bash(dir /s \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\GymRoutineGenerator.Core\")",
+      "Bash(del \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\GymRoutineGenerator.Infrastructure\\Documents\\ExportService.cs\")",
+      "Bash(powershell:*)",
+      "Bash(dir:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(md:*)",
+      "Bash(dotnet publish:*)",
+      "Bash(dotnet:*)",
+      "Bash(find:*)",
+      "Bash(del \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\Program.UI.cs\")",
+      "Bash(copy:*)",
+      "Bash(build-and-install.cmd)",
+      "Bash(cmd:*)",
+      "Bash(del \"create_shortcut.ps1\")",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(del srcGymRoutineGenerator.Tests.ImportSystemnul)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(cscript:*)",
+      "Bash(\"refrescar_iconos.bat\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

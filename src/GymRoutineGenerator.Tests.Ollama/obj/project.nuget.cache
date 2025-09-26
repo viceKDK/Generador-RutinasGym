@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "k67jY/JtYyg=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\GymRoutineGenerator.Tests.Ollama\\GymRoutineGenerator.Tests.Ollama.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\vicen\\.nuget\\packages\\microsoft.win32.systemevents\\9.0.9\\microsoft.win32.systemevents.9.0.9.nupkg.sha512",
+    "C:\\Users\\vicen\\.nuget\\packages\\system.drawing.common\\9.0.9\\system.drawing.common.9.0.9.nupkg.sha512"
+  ],
+  "logs": []
+}

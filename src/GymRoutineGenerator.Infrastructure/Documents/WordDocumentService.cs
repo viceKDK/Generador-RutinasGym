@@ -17,7 +17,7 @@ public class WordDocumentService : IWordDocumentService
     private readonly TemplateManagerService _templateManager;
     private readonly RoutineFormatterService _routineFormatter;
 
-    public WordDocumentService(ILogger<WordDocumentService> logger = null)
+    public WordDocumentService(ILogger<WordDocumentService>? logger = null)
     {
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<WordDocumentService>.Instance;
         _templateManager = new TemplateManagerService();

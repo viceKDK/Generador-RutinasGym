@@ -1,0 +1,24 @@
+﻿<Page
+    x:Class="GymRoutineGenerator.UI.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer>
+    <StackPanel Padding="16" Spacing="8">
+      <TextBlock Text="Generador de Rutinas" FontSize="24"/>
+      <TextBox x:ConnectionId='2' x:Name="txtClientName" PlaceholderText="Cliente"/>
+      <TextBox x:ConnectionId='3' x:Name="txtRoutineName" PlaceholderText="Rutina"/>
+      <ComboBox x:ConnectionId='4' x:Name="cmbTemplate">
+        <ComboBoxItem Content="Basica"/>
+        <ComboBoxItem Content="Estandar"/>
+      </ComboBox>
+      <CheckBox x:ConnectionId='5' x:Name="chkAutoOpen" Content="Abrir automaticamente"/>
+      <CheckBox x:ConnectionId='6' x:Name="chkIncludeImages" Content="Incluir imagenes"/>
+      <Button x:ConnectionId='7' x:Name="btnExport" Content="Crear"                        />
+      <Button x:ConnectionId='8' x:Name="btnSelectPath" Content="Cambiar ubicacion"                            />
+      <TextBlock x:ConnectionId='9' x:Name="txtStatus"/>
+      <ProgressBar x:ConnectionId='10' x:Name="progressExport" Minimum="0" Maximum="100" Visibility="Collapsed"/>
+      <TextBlock x:ConnectionId='11' x:Name="txtResults"/>
+    </StackPanel>
+  </ScrollViewer>
+</Page>
+

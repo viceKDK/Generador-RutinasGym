@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GymRoutineGenerator.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+401d56cac57f5aa4e12ddc7f0962a50d9a1dc12e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a90c09512fd736b443786d8b778548615ecf3f8")]
 [assembly: System.Reflection.AssemblyProductAttribute("GymRoutineGenerator.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GymRoutineGenerator.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

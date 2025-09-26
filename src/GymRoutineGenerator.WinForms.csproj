@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <OutputType>WinExe</OutputType>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- Application Info -->
+        <ApplicationIcon>..\\gym_icon.ico</ApplicationIcon>
+        <AssemblyTitle>Generador de Rutinas de Gimnasio</AssemblyTitle>
+        <Product>Generador de Rutinas de Gimnasio</Product>
+        <Description>Crea rutinas de gimnasio personalizadas y expórtalas a documentos Word profesionales de forma fácil y rápida.</Description>
+        <Company>GymRoutine Generator</Company>
+        <Copyright>© 2025 GymRoutine Generator</Copyright>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="GymRoutineGenerator.Core\GymRoutineGenerator.Core.csproj" />
+        <ProjectReference Include="GymRoutineGenerator.Infrastructure\GymRoutineGenerator.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+</Project>

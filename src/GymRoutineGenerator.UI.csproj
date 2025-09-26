@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <OutputType>WinExe</OutputType>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <!-- Avoid PRI generation that requires VS Appx tooling in this environment -->
+    <EnableMrtCorePriGeneration>false</EnableMrtCorePriGeneration>
+    <EnablePreviewMrtCorePriGeneration>false</EnablePreviewMrtCorePriGeneration>
+    <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <DisableWinAppSdkPri>true</DisableWinAppSdkPri>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <MsixPackageSupport>false</MsixPackageSupport>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <EnableDefaultWindowsAppSdkPRIResourceItems>false</EnableDefaultWindowsAppSdkPRIResourceItems>
+    <EnableDefaultWindowsAppSdkContentItems>false</EnableDefaultWindowsAppSdkContentItems>
+    <ShouldImportMsixPackagingTargets>false</ShouldImportMsixPackagingTargets>
+    <ShouldImportMsixDesignTimeTargets>false</ShouldImportMsixDesignTimeTargets>
+    <ShouldImportMsixCsTargets>false</ShouldImportMsixCsTargets>
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+    <EnablePriGenTooling>false</EnablePriGenTooling>
+    <!-- Project Options -->
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GymRoutineGenerator.UI</RootNamespace>
+    <!-- Application Metadata -->
+    <AssemblyTitle>Generador de Rutinas de Gimnasio</AssemblyTitle>
+    <AssemblyDescription>Crea rutinas de gimnasio personalizadas y expórtalas a documentos Word profesionales</AssemblyDescription>
+  </PropertyGroup>
+
+  <!-- Packages -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include=".\GymRoutineGenerator.Core\GymRoutineGenerator.Core.csproj" />
+    <ProjectReference Include=".\GymRoutineGenerator.Infrastructure\GymRoutineGenerator.Infrastructure.csproj" />
+    <ProjectReference Include=".\GymRoutineGenerator.Data\GymRoutineGenerator.Data.csproj" />
+  </ItemGroup>
+
+  <!-- XAML Pages -->
+  <ItemGroup>
+    <Page Include="App.xaml" />
+    <Page Include="Views\MainPage.xaml" />
+    <Page Include="Views\EquipmentPreferencesForm.xaml" />
+    <Page Include="Views\MuscleGroupFocusForm.xaml" />
+    <Page Include="Views\PhysicalLimitationsForm.xaml" />
+    <Page Include="Views\UserDemographicsForm.xaml" />
+    <Page Include="Views\UserInputWizard.xaml" />
+    <Page Include="Views\SummaryView.xaml" />
+    <Page Include="Views\HistoryView.xaml" />
+  </ItemGroup>
+
+  <!-- Code-behind files -->
+  <ItemGroup>
+    <Compile Include="WinUIProgram.cs" />
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\MainPage.xaml.cs">
+      <DependentUpon>Views\MainPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\EquipmentPreferencesForm.xaml.cs">
+      <DependentUpon>Views\EquipmentPreferencesForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\SummaryView.xaml.cs">
+      <DependentUpon>Views\SummaryView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\HistoryView.xaml.cs">
+      <DependentUpon>Views\HistoryView.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <!-- Additional code-behind includes -->
+  <ItemGroup>
+    <Compile Include="Views\UserInputWizard.xaml.cs">
+      <DependentUpon>Views\UserInputWizard.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\MuscleGroupFocusForm.xaml.cs">
+      <DependentUpon>Views\MuscleGroupFocusForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PhysicalLimitationsForm.xaml.cs">
+      <DependentUpon>Views\PhysicalLimitationsForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\UserDemographicsForm.xaml.cs">
+      <DependentUpon>Views\UserDemographicsForm.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+</Project>

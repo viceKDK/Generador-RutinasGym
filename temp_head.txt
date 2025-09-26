@@ -1,0 +1,200 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+using System.Globalization;
+using System.Text;
+
+namespace GymRoutineGenerator.UI
+{
+    public partial class ExerciseImageManagerForm : Form
+    {
+        private readonly ExerciseImageDatabase _imageDatabase;
+        private ListBox exerciseListBox;
+        private TextBox searchTextBox;
+        private PictureBox imagePreview;
+        private TextBox exerciseNameLabel;
+        private Label exerciseDescriptionLabel;
+        private TextBox keywordsTextBox;
+        private TextBox muscleGroupsTextBox;
+        private ModernButton selectImageButton;
+        private ModernButton saveButton;
+        private ModernButton deleteButton;
+        private ModernButton addNewExerciseButton;
+        private ModernButton goToMainButton;
+        private Label statusLabel;
+        private List<ExerciseImageInfo> _allExercises = new List<ExerciseImageInfo>();
+
+        public ExerciseImageManagerForm()
+        {
+            _imageDatabase = new ExerciseImageDatabase();
+            InitializeComponent();
+            LoadExercises();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = " Gestor de Imgenes de Ejercicios";
+            this.Size = new Size(1400, 900);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.MinimumSize = new Size(1200, 800);
+            this.WindowState = FormWindowState.Maximized;
+            this.BackColor = Color.FromArgb(248, 249, 250);
+
+            // Panel izquierdo - Lista de ejercicios
+            var leftPanel = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 300,
+                BackColor = Color.White,
+                Padding = new Padding(10)
+            };
+
+            var exercisesLabel = new Label
+            {
+                Text = " Ejercicios Disponibles",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 37, 41),
+                Dock = DockStyle.Top,
+                Height = 30,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            // Search box for exercises
+            var searchPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 40,
+                BackColor = Color.White,
+                Padding = new Padding(0, 4, 0, 8)
+            };
+
+            var searchLabel = new Label
+            {
+                Text = " Buscar ejercicio:",
+                Dock = DockStyle.Left,
+                Width = 130,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular)
+            };
+
+            searchTextBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9F),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            try { searchTextBox.PlaceholderText = "Escribe para buscar..."; } catch { /* PlaceholderText not supported */ }
+            searchTextBox.TextChanged += (s, e) => ApplyExerciseFilter(searchTextBox.Text);
+
+            searchPanel.Controls.Add(searchTextBox);
+            searchPanel.Controls.Add(searchLabel);
+
+            exerciseListBox = new ListBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                BorderStyle = BorderStyle.None,
+                BackColor = Color.FromArgb(248, 249, 250),
+                SelectionMode = SelectionMode.One
+            };
+            exerciseListBox.SelectedIndexChanged += ExerciseListBox_SelectedIndexChanged;
+
+            addNewExerciseButton = new ModernButton
+            {
+                Text = " Agregar Ejercicio",
+                Dock = DockStyle.Bottom,
+                Height = 40,
+                NormalColor = Color.FromArgb(40, 167, 69),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            addNewExerciseButton.Click += AddNewExerciseButton_Click;
+
+            goToMainButton = new ModernButton
+            {
+                Text = " Ir a Ventana Principal",
+                Dock = DockStyle.Bottom,
+                Height = 40,
+                NormalColor = Color.FromArgb(108, 117, 125),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            goToMainButton.Click += GoToMainButton_Click;
+
+            leftPanel.Controls.Add(exerciseListBox);
+            leftPanel.Controls.Add(searchPanel);
+            leftPanel.Controls.Add(exercisesLabel);
+            leftPanel.Controls.Add(addNewExerciseButton);
+            leftPanel.Controls.Add(goToMainButton);
+
+            // Panel central - Vista previa de imagen
+            var centerPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(20)
+            };
+
+            var imageLabel = new Label
+            {
+                Text = " Vista Previa de Imagen",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 37, 41),
+                Dock = DockStyle.Top,
+                Height = 30,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            imagePreview = new PictureBox
+            {
+                Dock = DockStyle.Fill,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(248, 249, 250)
+            };
+
+            var imageButtonsPanel = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 50,
+                BackColor = Color.Transparent
+            };
+
+            selectImageButton = new ModernButton
+            {
+                Text = " Seleccionar Imagen",
+                Dock = DockStyle.Fill,
+                Height = 40,
+                NormalColor = Color.FromArgb(13, 110, 253),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+            };
+            selectImageButton.Click += SelectImageButton_Click;
+
+            imageButtonsPanel.Controls.Add(selectImageButton);
+
+            centerPanel.Controls.Add(imagePreview);
+            centerPanel.Controls.Add(imageLabel);
+            centerPanel.Controls.Add(imageButtonsPanel);
+
+            // Panel derecho - Detalles del ejercicio
+            var rightPanel = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 300,
+                BackColor = Color.White,
+                Padding = new Padding(10)
+            };
+
+            var detailsLabel = new Label
+            {
+                Text = " Detalles del Ejercicio",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 37, 41),
+                Dock = DockStyle.Top,
+                Height = 30,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            exerciseNameLabel = new TextBox
+            {

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GymRoutineGenerator.UI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "GymRoutineGenerator.UI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

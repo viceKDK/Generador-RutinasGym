@@ -9,7 +9,7 @@ public interface IErrorHandlingService
     /// <summary>
     /// Maneja una excepción y proporciona un mensaje amigable para el usuario
     /// </summary>
-    Task<ErrorResult> HandleErrorAsync(Exception exception, string context = "", object additionalData = null);
+    Task<ErrorResult> HandleErrorAsync(Exception exception, string context = "", object? additionalData = null);
 
     /// <summary>
     /// Registra un error sin procesar una excepción
