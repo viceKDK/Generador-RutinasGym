@@ -1,0 +1,12 @@
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\bin\Debug\net9.0\GymRoutineGenerator.Core.deps.json
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\bin\Debug\net9.0\GymRoutineGenerator.Core.dll
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\bin\Debug\net9.0\GymRoutineGenerator.Core.pdb
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.AssemblyInfoInputs.cache
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.AssemblyInfo.cs
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.csproj.CoreCompileInputs.cache
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.sourcelink.json
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.dll
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\refint\GymRoutineGenerator.Core.dll
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\GymRoutineGenerator.Core.pdb
+C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Core\obj\Debug\net9.0\ref\GymRoutineGenerator.Core.dll
