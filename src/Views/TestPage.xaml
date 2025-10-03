@@ -1,9 +1,0 @@
-&lt;Page x:Class="GymRoutineGenerator.UI.Views.TestPage"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"&gt;
-    &lt;StackPanel Padding="20" Spacing="10"&gt;
-        &lt;TextBlock Text="Test Page" FontSize="24" FontWeight="Bold"/&gt;
-        &lt;TextBlock Text="This is a simple test page to verify navigation works."/&gt;
-        &lt;Button Content="Test Button" Click="TestButton_Click"/&gt;
-    &lt;/StackPanel&gt;
-&lt;/Page&gt;

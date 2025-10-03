@@ -1,6 +1,0 @@
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Tests.Complete\obj\x64\Debug\net8.0\GymRoutineGenerator.Tests.Complete.csproj.AssemblyReference.cache
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Tests.Complete\obj\x64\Debug\net8.0\GymRoutineGenerator.Tests.Complete.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Tests.Complete\obj\x64\Debug\net8.0\GymRoutineGenerator.Tests.Complete.AssemblyInfoInputs.cache
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Tests.Complete\obj\x64\Debug\net8.0\GymRoutineGenerator.Tests.Complete.AssemblyInfo.cs
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Tests.Complete\obj\x64\Debug\net8.0\GymRoutineGenerator.Tests.Complete.csproj.CoreCompileInputs.cache
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\GymRoutineGenerator.Tests.Complete\obj\x64\Debug\net8.0\GymRoutineGenerator.Tests.Complete.sourcelink.json
