@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GymRoutineGenerator.Core\GymRoutineGenerator.Core.csproj" />
+    <ProjectReference Include="..\GymRoutineGenerator.Data\GymRoutineGenerator.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

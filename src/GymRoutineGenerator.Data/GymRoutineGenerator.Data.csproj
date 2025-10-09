@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GymRoutineGenerator.Core\GymRoutineGenerator.Core.csproj" />
-    <ProjectReference Include="..\GymRoutineGenerator.Infrastructure\GymRoutineGenerator.Infrastructure.csproj" />
+    <ProjectReference Include="..\GymRoutineGenerator.Domain\GymRoutineGenerator.Domain.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,13 @@ Set objFSO = CreateObject("Scripting.FileSystemObject")
 
 ' Obtener la ruta del directorio del script
 scriptPath = objFSO.GetParentFolderName(WScript.ScriptFullName)
-appPath = scriptPath & "\app-ui"
+exePath = scriptPath & "\src\app-ui\bin\x64\Debug\net8.0-windows\GeneradorRutinasGimnasio.exe"
 
-' Ejecutar la aplicación sin mostrar ventana de terminal
-objShell.Run "cmd /c ""cd /d """ & appPath & """ && dotnet run""", 0, False
+' Verificar si existe el ejecutable
+If objFSO.FileExists(exePath) Then
+    ' Ejecutar la aplicación directamente sin mostrar ventana de terminal
+    objShell.Run """" & exePath & """", 1, False
+Else
+    ' Si no existe el ejecutable, mostrar error
+    MsgBox "No se encontró el ejecutable en: " & vbCrLf & exePath, vbCritical, "Error"
+End If
