@@ -14,7 +14,8 @@ namespace GymRoutineGenerator.UI.Models
             string name,
             string imagePath,
             IReadOnlyList<string>? muscleGroups,
-            DateTime addedAtUtc)
+            DateTime addedAtUtc,
+            string source)
         {
             ExerciseId = string.IsNullOrWhiteSpace(exerciseId)
                 ? throw new ArgumentException("Exercise id cannot be empty.", nameof(exerciseId))
@@ -24,6 +25,7 @@ namespace GymRoutineGenerator.UI.Models
             ImagePath = imagePath?.Trim() ?? string.Empty;
             MuscleGroups = (muscleGroups ?? Array.Empty<string>()).Where(g => !string.IsNullOrWhiteSpace(g)).ToArray();
             AddedAtUtc = addedAtUtc;
+            Source = source?.Trim() ?? string.Empty;
         }
 
         public string ExerciseId { get; }
@@ -35,6 +37,8 @@ namespace GymRoutineGenerator.UI.Models
         public IReadOnlyList<string> MuscleGroups { get; }
 
         public DateTime AddedAtUtc { get; }
+
+        public string Source { get; }
 
         public string DisplayName => string.IsNullOrWhiteSpace(Name) ? ExerciseId : Name;
 
@@ -50,7 +54,8 @@ namespace GymRoutineGenerator.UI.Models
                 item.DisplayName,
                 item.ImagePath,
                 item.MuscleGroups,
-                timestampUtc ?? DateTime.UtcNow);
+                timestampUtc ?? DateTime.UtcNow,
+                item.Source);
         }
     }
 }
