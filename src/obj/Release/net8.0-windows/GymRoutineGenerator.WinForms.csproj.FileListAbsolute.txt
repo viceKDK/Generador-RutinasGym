@@ -1,6 +1,0 @@
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\obj\Release\net8.0-windows\GymRoutineGenerator.WinForms.csproj.AssemblyReference.cache
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\obj\Release\net8.0-windows\GymRoutineGenerator.WinForms.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\obj\Release\net8.0-windows\GymRoutineGenerator.WinForms.AssemblyInfoInputs.cache
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\obj\Release\net8.0-windows\GymRoutineGenerator.WinForms.AssemblyInfo.cs
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\obj\Release\net8.0-windows\GymRoutineGenerator.WinForms.csproj.CoreCompileInputs.cache
-C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\src\obj\Release\net8.0-windows\GymRoutineGenerator.WinForms.sourcelink.json

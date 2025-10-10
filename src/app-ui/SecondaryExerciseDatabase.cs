@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Globalization;
+using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace GymRoutineGenerator.UI
 {
@@ -15,6 +19,9 @@ namespace GymRoutineGenerator.UI
         private readonly string _dbPath;
         private readonly string _docsEjerciciosPath;
         private readonly Dictionary<string, string> _muscleGroupMapping;
+        private readonly Lazy<Dictionary<string, string>> _docsImageLookup;
+        private static readonly Regex NonAlphaNumericRegex = new("[^a-z0-9\\s]", RegexOptions.Compiled);
+        private static readonly Regex MultipleSpacesRegex = new("\\s+", RegexOptions.Compiled);
 
         public SecondaryExerciseDatabase()
         {
@@ -26,6 +33,7 @@ namespace GymRoutineGenerator.UI
 
             // Mapeo de nombres de carpetas a nombres de grupos musculares
             _muscleGroupMapping = InitializeMuscleGroupMapping();
+            _docsImageLookup = new Lazy<Dictionary<string, string>>(BuildDocsImageLookup, LazyThreadSafetyMode.ExecutionAndPublication);
 
             InitializeDatabase();
         }
@@ -214,8 +222,18 @@ namespace GymRoutineGenerator.UI
                     using var reader = cmd.ExecuteReader();
                     if (reader.Read())
                     {
-                        var imagePath = reader.GetString(2);
-                        if (File.Exists(imagePath))
+                        var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                        if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                        {
+                            var resolved = ResolveImageFromDocs(reader.GetString(0));
+                            if (!string.IsNullOrWhiteSpace(resolved))
+                            {
+                                imagePath = resolved;
+                                UpdateImagePath(connection, reader.GetString(0), resolved);
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath))
                         {
                             return new ExerciseImageInfo
                             {
@@ -242,8 +260,18 @@ namespace GymRoutineGenerator.UI
                     using var reader = cmd.ExecuteReader();
                     if (reader.Read())
                     {
-                        var imagePath = reader.GetString(2);
-                        if (File.Exists(imagePath))
+                        var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                        if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                        {
+                            var resolved = ResolveImageFromDocs(reader.GetString(0));
+                            if (!string.IsNullOrWhiteSpace(resolved))
+                            {
+                                imagePath = resolved;
+                                UpdateImagePath(connection, reader.GetString(0), resolved);
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath))
                         {
                             return new ExerciseImageInfo
                             {
@@ -290,12 +318,24 @@ namespace GymRoutineGenerator.UI
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    var imagePath = reader.GetString(2);
-                    if (File.Exists(imagePath))
+                    var name = reader.GetString(0);
+                    var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+
+                    if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                    {
+                        var resolved = ResolveImageFromDocs(name);
+                        if (!string.IsNullOrWhiteSpace(resolved))
+                        {
+                            imagePath = resolved;
+                            UpdateImagePath(connection, name, resolved);
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath))
                     {
                         exercises.Add(new ExerciseImageInfo
                         {
-                            Name = reader.GetString(0),
+                            Name = name,
                             ImagePath = imagePath,
                             Source = "BD Secundaria"
                         });
@@ -331,7 +371,19 @@ namespace GymRoutineGenerator.UI
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
+                    var name = reader.GetString(0);
                     var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+
+                    if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                    {
+                        var resolved = ResolveImageFromDocs(name);
+                        if (!string.IsNullOrWhiteSpace(resolved))
+                        {
+                            imagePath = resolved;
+                            UpdateImagePath(connection, name, resolved);
+                        }
+                    }
+
                     var groups = reader.IsDBNull(1)
                         ? Array.Empty<string>()
                         : new[] { reader.GetString(1) };
@@ -382,6 +434,129 @@ namespace GymRoutineGenerator.UI
             }
 
             return (0, 0);
+        }
+
+        private Dictionary<string, string> BuildDocsImageLookup()
+        {
+            var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(_docsEjerciciosPath) || !Directory.Exists(_docsEjerciciosPath))
+            {
+                return lookup;
+            }
+
+            try
+            {
+                foreach (var muscleDir in Directory.GetDirectories(_docsEjerciciosPath))
+                {
+                    foreach (var exerciseDir in Directory.GetDirectories(muscleDir))
+                    {
+                        var normalized = Normalize(Path.GetFileName(exerciseDir));
+                        if (string.IsNullOrEmpty(normalized) || lookup.ContainsKey(normalized))
+                        {
+                            continue;
+                        }
+
+                        var imageFile = Directory.GetFiles(exerciseDir, "*.*")
+                            .Where(IsSupportedImage)
+                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                            .FirstOrDefault();
+
+                        if (!string.IsNullOrWhiteSpace(imageFile))
+                        {
+                            lookup[normalized] = Path.GetFullPath(imageFile);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error construyendo indice de imagenes de docs: {ex.Message}");
+            }
+
+            return lookup;
+        }
+
+        private string? ResolveImageFromDocs(string exerciseName)
+        {
+            if (string.IsNullOrWhiteSpace(exerciseName))
+            {
+                return null;
+            }
+
+            var normalized = Normalize(exerciseName);
+            if (string.IsNullOrEmpty(normalized))
+            {
+                return null;
+            }
+
+            try
+            {
+                var lookup = _docsImageLookup.Value;
+                if (lookup.TryGetValue(normalized, out var found) && File.Exists(found))
+                {
+                    return found;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error resolviendo imagen desde docs: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        private void UpdateImagePath(SQLiteConnection connection, string exerciseName, string imagePath)
+        {
+            try
+            {
+                using var update = connection.CreateCommand();
+                update.CommandText = @"
+                    UPDATE Ejercicios
+                    SET RutaImagen = @path
+                    WHERE Nombre = @name AND (RutaImagen IS NULL OR RutaImagen = '' OR RutaImagen <> @path)";
+                update.Parameters.AddWithValue("@path", imagePath);
+                update.Parameters.AddWithValue("@name", exerciseName);
+                update.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error actualizando RutaImagen para {exerciseName}: {ex.Message}");
+            }
+        }
+
+        private static bool IsSupportedImage(string filePath)
+        {
+            return filePath.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                   filePath.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                   filePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                   filePath.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string Normalize(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = value.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(trimmed.Length);
+
+            foreach (var character in trimmed)
+            {
+                var category = CharUnicodeInfo.GetUnicodeCategory(character);
+                if (category != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(character);
+                }
+            }
+
+            var stripped = builder.ToString();
+            stripped = NonAlphaNumericRegex.Replace(stripped, " ");
+            stripped = MultipleSpacesRegex.Replace(stripped, " ").Trim();
+
+            return stripped;
         }
     }
 }

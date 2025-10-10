@@ -21,6 +21,7 @@
 - Listado tipo galeria con tarjetas que incluyen miniatura, nombre, grupos musculares y acciones rapidas.
 - Acciones inmediatas: copiar imagen al portapapeles, abrir ubicacion en el explorador, agregar a lista de seleccion.
 - Panel lateral con los ejercicios seleccionados, contador y opciones para quitar elementos y copiar lista (texto plano).
+- Accion rapida global en el menu Herramientas para copiar la seleccion manual al portapapeles.
 - Acceso directo desde la seccion Herramientas en `MainForm`.
 
 ### 4.2 Fuera de alcance (para iteraciones posteriores)
@@ -142,6 +143,7 @@ ExerciseImageSearchService + SQLiteExerciseImageDatabase (existente)
 - Boton `Galeria de ejercicios` en la seccion Herramientas junto a las utilidades ya existentes.
 - `MainForm` administra instancia unica del servicio para compartir cache con otras pantallas futuras.
 - Al cerrar la galeria, la lista temporal se limpia (no persiste fuera de la sesion actual).
+- Exportaciones a Word adjuntan un apendice opcional con la lista manual si la seleccion no esta vacia.
 
 ## 14. Roadmap de implementacion
 1. **Fundamentos del servicio**

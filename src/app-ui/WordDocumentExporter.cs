@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using WColor = DocumentFormat.OpenXml.Wordprocessing.Color;
+using GymRoutineGenerator.UI.Models;
 
 namespace GymRoutineGenerator.UI
 {
@@ -553,7 +555,12 @@ namespace GymRoutineGenerator.UI
                       .Replace("6", "6.");
         }
 
-        public async Task<bool> ExportRoutineWithImagesAsync(string filePath, string routineContent, List<WorkoutDay> workoutPlan, SQLiteExerciseImageDatabase imageDatabase)
+        public async Task<bool> ExportRoutineWithImagesAsync(
+            string filePath,
+            string routineContent,
+            List<WorkoutDay> workoutPlan,
+            SQLiteExerciseImageDatabase imageDatabase,
+            IReadOnlyList<ExerciseSelectionEntry>? manualSelection = null)
         {
             return await Task.Run(() =>
             {
@@ -728,6 +735,37 @@ namespace GymRoutineGenerator.UI
                         body.Append(CreateBulletPoint("Descansa 48-72 horas entre entrenamientos del mismo grupo muscular"));
                         body.Append(CreateBulletPoint("Mantente hidratado durante el entrenamiento"));
                         body.Append(CreateBulletPoint("Consulta a un profesional si tienes dudas sobre algún ejercicio"));
+
+                        if (manualSelection != null && manualSelection.Count > 0)
+                        {
+                            body.Append(CreateParagraph(""));
+                            body.Append(CreateHeading("SELECCIÓN MANUAL DE EJERCICIOS", 2));
+                            body.Append(CreateParagraph("Ejercicios agregados desde la galería manual durante esta sesión:"));
+                            body.Append(CreateParagraph(""));
+
+                            for (var index = 0; index < manualSelection.Count; index++)
+                            {
+                                var entry = manualSelection[index];
+                                var summaryBuilder = new StringBuilder($"{index + 1}. {entry.DisplayName}");
+
+                                if (!string.IsNullOrWhiteSpace(entry.Source))
+                                {
+                                    summaryBuilder.Append($" ({entry.Source})");
+                                }
+
+                                body.Append(CreateParagraph(summaryBuilder.ToString()));
+
+                                if (entry.MuscleGroups.Count > 0)
+                                {
+                                    body.Append(CreateParagraph($"   Grupos musculares: {string.Join(", ", entry.MuscleGroups)}"));
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(entry.ImagePath))
+                                {
+                                    body.Append(CreateParagraph($"   Imagen: {Path.GetFileName(entry.ImagePath)}"));
+                                }
+                            }
+                        }
 
                         mainPart.Document.Append(body);
                         mainPart.Document.Save();

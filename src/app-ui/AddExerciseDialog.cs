@@ -133,10 +133,17 @@ namespace GymRoutineGenerator.UI
             };
 
             // Cargar grupos musculares disponibles
-            var muscleGroups = new[] {
-                "Pecho", "Espalda", "Hombros", "Biceps", "Triceps",
-                "Cuadriceps", "Isquiotibiales", "Gluteos", "Pantorrillas",
-                "Abdomen", "Core", "Antebrazos", "Trapecio"
+            var muscleGroups = new[]
+            {
+                "Pecho",
+                "Espalda",
+                "Hombros",
+                "Biceps",
+                "Triceps",
+                "Piernas",
+                "Gluteos",
+                "Core",
+                "Cuerpo Completo"
             };
 
             foreach (var group in muscleGroups)

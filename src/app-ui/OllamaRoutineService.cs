@@ -123,58 +123,68 @@ namespace GymRoutineGenerator.UI
             switch (trainingDays)
             {
                 case 1:
+                    split.Add(new MuscleGroupDay
+                    {
+                        DayName = "Dia 1",
+                        MuscleGroups = new[] { "Pecho", "Espalda", "Piernas", "Core" }
+                    });
+                    break;
+
                 case 2:
                     split.Add(new MuscleGroupDay
                     {
-                        DayName = "Día 1",
+                        DayName = "Dia 1",
                         MuscleGroups = new[] { "Pecho", "Espalda", "Piernas", "Core" }
                     });
-                    if (trainingDays == 2)
+                    split.Add(new MuscleGroupDay
                     {
-                        split.Add(new MuscleGroupDay
-                        {
-                            DayName = "Día 2",
-                            MuscleGroups = new[] { "Hombros", "Brazos", "Glúteos", "Core" }
-                        });
-                    }
+                        DayName = "Dia 2",
+                        MuscleGroups = new[] { "Hombros", "Biceps", "Triceps", "Gluteos", "Core" }
+                    });
                     break;
 
                 case 3:
-                    // Push/Pull/Legs
-                    split.Add(new MuscleGroupDay { DayName = "Día 1", MuscleGroups = new[] { "Pecho", "Hombros", "Tríceps" } }); // Push
-                    split.Add(new MuscleGroupDay { DayName = "Día 2", MuscleGroups = new[] { "Espalda", "Bíceps" } }); // Pull
-                    split.Add(new MuscleGroupDay { DayName = "Día 3", MuscleGroups = new[] { "Piernas", "Glúteos" } }); // Legs
+                    split.Add(new MuscleGroupDay { DayName = "Dia 1", MuscleGroups = new[] { "Pecho", "Hombros", "Triceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 2", MuscleGroups = new[] { "Espalda", "Biceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 3", MuscleGroups = new[] { "Piernas", "Gluteos", "Core" } });
                     break;
 
                 case 4:
-                    // Upper/Lower x2
-                    split.Add(new MuscleGroupDay { DayName = "Día 1", MuscleGroups = new[] { "Pecho", "Hombros", "Tríceps" } }); // Upper A
-                    split.Add(new MuscleGroupDay { DayName = "Día 2", MuscleGroups = new[] { "Piernas", "Glúteos" } }); // Lower A
-                    split.Add(new MuscleGroupDay { DayName = "Día 3", MuscleGroups = new[] { "Espalda", "Bíceps" } }); // Upper B
-                    split.Add(new MuscleGroupDay { DayName = "Día 4", MuscleGroups = new[] { "Piernas", "Core" } }); // Lower B
+                    split.Add(new MuscleGroupDay { DayName = "Dia 1", MuscleGroups = new[] { "Pecho", "Hombros", "Triceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 2", MuscleGroups = new[] { "Piernas", "Gluteos" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 3", MuscleGroups = new[] { "Espalda", "Biceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 4", MuscleGroups = new[] { "Piernas", "Core" } });
                     break;
 
                 case 5:
-                    // Push/Pull/Legs + Upper/Lower
-                    split.Add(new MuscleGroupDay { DayName = "Día 1", MuscleGroups = new[] { "Pecho", "Tríceps" } }); // Push
-                    split.Add(new MuscleGroupDay { DayName = "Día 2", MuscleGroups = new[] { "Espalda", "Bíceps" } }); // Pull
-                    split.Add(new MuscleGroupDay { DayName = "Día 3", MuscleGroups = new[] { "Piernas" } }); // Legs
-                    split.Add(new MuscleGroupDay { DayName = "Día 4", MuscleGroups = new[] { "Hombros", "Core" } }); // Delts
-                    split.Add(new MuscleGroupDay { DayName = "Día 5", MuscleGroups = new[] { "Piernas", "Glúteos" } }); // Legs 2
+                    split.Add(new MuscleGroupDay { DayName = "Dia 1", MuscleGroups = new[] { "Pecho", "Triceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 2", MuscleGroups = new[] { "Espalda", "Biceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 3", MuscleGroups = new[] { "Piernas" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 4", MuscleGroups = new[] { "Hombros", "Core" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 5", MuscleGroups = new[] { "Gluteos", "Core" } });
                     break;
 
                 case 6:
+                    split.Add(new MuscleGroupDay { DayName = "Dia 1", MuscleGroups = new[] { "Pecho" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 2", MuscleGroups = new[] { "Espalda" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 3", MuscleGroups = new[] { "Piernas" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 4", MuscleGroups = new[] { "Hombros" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 5", MuscleGroups = new[] { "Biceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 6", MuscleGroups = new[] { "Triceps", "Core" } });
+                    break;
+
                 case 7:
-                    split.Add(new MuscleGroupDay { DayName = "Día 1", MuscleGroups = new[] { "Pecho" } });
-                    split.Add(new MuscleGroupDay { DayName = "Día 2", MuscleGroups = new[] { "Espalda" } });
-                    split.Add(new MuscleGroupDay { DayName = "Día 3", MuscleGroups = new[] { "Hombros", "Core" } });
-                    split.Add(new MuscleGroupDay { DayName = "Día 4", MuscleGroups = new[] { "Piernas", "Glúteos" } });
-                    split.Add(new MuscleGroupDay { DayName = "Día 5", MuscleGroups = new[] { "Brazos" } });
-                    split.Add(new MuscleGroupDay { DayName = "Día 6", MuscleGroups = new[] { "Core", "Cuerpo Completo" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 1", MuscleGroups = new[] { "Pecho" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 2", MuscleGroups = new[] { "Espalda" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 3", MuscleGroups = new[] { "Piernas" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 4", MuscleGroups = new[] { "Hombros" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 5", MuscleGroups = new[] { "Biceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 6", MuscleGroups = new[] { "Triceps" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 7", MuscleGroups = new[] { "Core", "Cuerpo Completo" } });
                     break;
 
                 default:
-                    split.Add(new MuscleGroupDay { DayName = "Día 1", MuscleGroups = new[] { "Pecho", "Espalda", "Piernas" } });
+                    split.Add(new MuscleGroupDay { DayName = "Dia 1", MuscleGroups = new[] { "Pecho", "Espalda", "Piernas" } });
                     break;
             }
 

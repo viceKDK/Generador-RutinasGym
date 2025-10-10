@@ -74,7 +74,7 @@ Aplicación de escritorio .NET 8 que sigue principios de **Clean Architecture** 
 ┌─────────────────────────────────────────┐
 │      Presentation Layer (UI)            │
 │  - WinForms (principal en UI/)          │
-│  - WinUI 3 (alternativo en src/)        │
+│       │
 └─────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────┐
@@ -101,7 +101,6 @@ Aplicación de escritorio .NET 8 que sigue principios de **Clean Architecture** 
 ### Tecnologías Principales
 - **.NET 8** - Framework principal
 - **WinForms** - UI principal (UI/)
-- **WinUI 3** - UI alternativa (src/UI)
 - **Entity Framework Core** - ORM
 - **SQLite** - Base de datos
 - **Ollama + Mistral 7B** - IA local
@@ -280,29 +279,29 @@ gym-routine-generator/
 
 ### ✅ Funcionalidades Implementadas
 - **Generación de rutinas básicas** con selección de ejercicios
-- **Gesti�n de ejercicios CQRS** (cat�logo + im�genes via MediatR)
+- **Gesti�n de ejercicios CQRS** (cat�logo + im�genes via MediatR)
 - **Exportación a Word** con imágenes embebidas
 - **Integración con IA local** (Ollama + Mistral 7B)
 - **Chat conversacional** para modificar rutinas
 - **Validación de seguridad** basada en limitaciones físicas
-- **Gesti�n de im�genes** con base de datos + CQRS
+- **Gesti�n de im�genes** con base de datos + CQRS
 - **Múltiples UIs** (WinForms principal, WinUI alternativo)
 
 ### 🆕 NUEVO: Clean Architecture Implementation (Diciembre 2024)
 
 > **?? Estado Global**: 90% completado | **?? Tests**: 123/123 passing (~0.7s)
 >
-> **?? Documentaci�n completa**: Ver `docs/PROGRESO-CLEAN-ARCHITECTURE.md` para detalles exhaustivos
+> **?? Documentaci�n completa**: Ver `docs/PROGRESO-CLEAN-ARCHITECTURE.md` para detalles exhaustivos
 
 #### ✅ Fase 1: Domain Layer - COMPLETADO (100%)
 - ✅ **Proyecto Domain creado** (`GymRoutineGenerator.Domain`)
 - ✅ **Aggregates implementados**: Exercise, Routine, WorkoutPlan
-- ✅ **Value Objects biling�es**: MuscleGroup, EquipmentType (espa�ol/ingl�s)
+- ✅ **Value Objects biling�es**: MuscleGroup, EquipmentType (espa�ol/ingl�s)
 - ✅ **Repository Interfaces**: IExerciseRepository, IWorkoutPlanRepository, IUnitOfWork
 - ✅ **Domain Services**: IRoutineSafetyValidator, IExerciseSelector
 - ✅ **Domain Events**: WorkoutPlanCreatedEvent, ExerciseCreatedEvent
 - ✅ **Base Classes**: Entity, ValueObject, IDomainEvent
-- �"� **Estado**: Compilando sin errores | **Tests**: 45/45 passing
+- �"� **Estado**: Compilando sin errores | **Tests**: 45/45 passing
 
 #### ✅ Fase 2: Application Layer - COMPLETADO (100%)
 - ✅ **Proyecto Application creado** (`GymRoutineGenerator.Application`)
@@ -311,11 +310,11 @@ gym-routine-generator/
   - Queries: GetAllExercisesQuery, GetExerciseCatalogQuery, GetExerciseByIdQuery, GetWorkoutPlanByIdQuery
   - Handlers para cada Command/Query
 - ✅ **DTOs**: ExerciseDto, RoutineDto, WorkoutPlanDto, ExerciseSetDto
-- ✅ **AutoMapper 12.x**: MappingProfile para mapeo Domain �' DTOs
+- ✅ **AutoMapper 12.x**: MappingProfile para mapeo Domain �' DTOs
 - ✅ **FluentValidation**: Validators con pipeline behavior automático
 - ✅ **Result Pattern**: Manejo de errores funcional
 - ✅ **DependencyInjection**: Configuración con extension methods
-- �"� **Estado**: Compilando sin errores | **Tests**: 52/52 passing
+- �"� **Estado**: Compilando sin errores | **Tests**: 52/52 passing
 
 #### ✅ Fase 3: Infrastructure Layer - COMPLETADO (95%)
 - ✅ **Persistencia WorkoutPlan** en SQLite con EF Core
@@ -323,26 +322,26 @@ gym-routine-generator/
 - ✅ **Migración**: `20251002183929_AddWorkoutPlanPersistence`
 - ✅ **Repositories** delegando a Data layer (eliminada duplicación in-memory)
 - ✅ **UnitOfWork** con transacciones coordinadas
-- ✅ **Mapeo mejorado** categorías musculares y validación espa�ol
-- � � **Pendiente**: Limpieza warnings (~25 nullability/async)
-- �"� **Estado**: Compilando sin errores | **Tests**: 26/26 passing
+- ✅ **Mapeo mejorado** categorías musculares y validación espa�ol
+- � � **Pendiente**: Limpieza warnings (~25 nullability/async)
+- �"� **Estado**: Compilando sin errores | **Tests**: 26/26 passing
 
-#### �"� Fase 4: UI Integration - EN PROGRESO (75%)
+#### �"� Fase 4: UI Integration - EN PROGRESO (75%)
 - ✅ **DI configurado** en AppServices.cs
 - ✅ **2 formularios migrados a CQRS**:
   - `ExerciseExplorerForm`: Query-based con MediatR
   - `ExerciseCatalogManagerForm`: CRUD completo via Commands/Queries
-- � � **Pendiente**: Migrar MainForm, RoutinePreviewForm, AddExerciseDialog
-- �"� **Estado**: Funcional | **Tests UI**: Pendiente
+- � � **Pendiente**: Migrar MainForm, RoutinePreviewForm, AddExerciseDialog
+- �"� **Estado**: Funcional | **Tests UI**: Pendiente
 
 #### ✅ Fase 5: Testing - COMPLETADO (100%)
 - ✅ **123 tests automatizados** (100% passing, ~0.7s)
 - ✅ **Cobertura**: Domain (45), Application (52), Integration (26)
 - ✅ **Base de datos en memoria** para tests de integración
 - ✅ **XUnit + FluentAssertions + Moq**
-- �"� **Estado**: Suite completa ejecutándose
+- �"� **Estado**: Suite completa ejecutándose
 
-#### �� Fase 6: Production - NO INICIADA (0%)
+#### �� Fase 6: Production - NO INICIADA (0%)
 - ⬜ Pipeline CI/CD (GitHub Actions)
 - ⬜ Coverage reporting (Coverlet + ReportGenerator)
 - ⬜ Empaquetado Release (MSI/ClickOnce)
@@ -354,7 +353,7 @@ gym-routine-generator/
 - ✅ **Archivos .old duplicados**: Eliminados durante reorganización
 - ✅ **Scripts dispersos**: Consolidados en carpeta scripts/
 
-### �"� Estado de Compilación
+### �"� Estado de Compilación
 - **Build Status**: ✅ Exitoso (0 errores)
 - **Warnings**: ~25 (reducidos desde ~150, principalmente nullability)
 - **Target Framework**: .NET 8.0
@@ -707,11 +706,11 @@ namespace GymRoutineGenerator.UI.WinForms.Features.Routines;
 
 ---
 
-## �"� Roadmap Futuro
+## �"� Roadmap Futuro
 
 > **?? Progreso Global**: 90% | **?? Milestone Actual**: Fase 4 (UI Integration) - 75%
 >
-> **?? Roadmap detallado**: Ver `docs/PROGRESO-CLEAN-ARCHITECTURE.md` secci�n "Roadmap de Implementaci�n"
+> **?? Roadmap detallado**: Ver `docs/PROGRESO-CLEAN-ARCHITECTURE.md` secci�n "Roadmap de Implementaci�n"
 
 ### ✅ Fase 1: Domain Layer - COMPLETADO (100%)
 - [x] Proyecto Domain limpio con Aggregates, Value Objects, Repository Interfaces
@@ -734,7 +733,7 @@ namespace GymRoutineGenerator.UI.WinForms.Features.Routines;
 - [x] **26 tests** de integración (100% passing)
 - [ ] Limpieza de warnings (~25 restantes)
 
-### �"� Fase 4: UI Integration - EN PROGRESO (75%)
+### �"� Fase 4: UI Integration - EN PROGRESO (75%)
 - [x] MediatR integrado en UI
 - [x] 2 formularios migrados (ExerciseExplorerForm, ExerciseCatalogManagerForm)
 - [ ] **Próximo**: Migrar MainForm a CQRS
@@ -747,7 +746,7 @@ namespace GymRoutineGenerator.UI.WinForms.Features.Routines;
 - [x] Base de datos en memoria
 - [x] XUnit + FluentAssertions + Moq
 
-### �� Fase 6: Production Ready - NO INICIADA (0%)
+### �� Fase 6: Production Ready - NO INICIADA (0%)
 - [ ] Pipeline CI/CD (GitHub Actions o Azure DevOps)
 - [ ] Coverage reporting (Coverlet + ReportGenerator)
 - [ ] Empaquetado Release (MSI o ClickOnce)
@@ -834,19 +833,19 @@ curl http://localhost:11434/api/tags
 
 ## ?? Historial de Cambios
 
-### Versi�n 2.1 - Octubre 2025
+### Versi�n 2.1 - Octubre 2025
 - ? Actualizado estado Clean Architecture (90% completado)
-- ? Sincronizado informaci�n de testing (123 tests)
-- ? Actualizadas todas las fases con m�tricas reales
-- ? Consolidada documentaci�n en PROGRESO-CLEAN-ARCHITECTURE.md
+- ? Sincronizado informaci�n de testing (123 tests)
+- ? Actualizadas todas las fases con m�tricas reales
+- ? Consolidada documentaci�n en PROGRESO-CLEAN-ARCHITECTURE.md
 - ? Reducidos warnings de ~150 a ~25
 
-### Versi�n 2.0 - Diciembre 2024
-- ? Reestructuraci�n completa de arquitectura
-- ? Documentaci�n exhaustiva de Clean Architecture
+### Versi�n 2.0 - Diciembre 2024
+- ? Reestructuraci�n completa de arquitectura
+- ? Documentaci�n exhaustiva de Clean Architecture
 
 ---
 
-**�ltima actualizaci�n**: 2025-10-02
-**Versi�n**: 2.1 - Clean Architecture al 90%
+**�ltima actualizaci�n**: 2025-10-02
+**Versi�n**: 2.1 - Clean Architecture al 90%
 

@@ -10,7 +10,7 @@ namespace GymRoutineGenerator.UI
     public partial class ImprovedExerciseImageManagerForm : Form
     {
         private readonly SQLiteExerciseImageDatabase _imageDatabase;
-        private ListBox exerciseListBox;
+        private ListBox exerciseListBox = null!;
         private TextBox searchTextBox;
         private PictureBox imagePreview;
         private TextBox exerciseNameTextBox;
