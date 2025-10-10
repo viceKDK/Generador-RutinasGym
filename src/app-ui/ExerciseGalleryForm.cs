@@ -1,9 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using GymRoutineGenerator.UI.Models;
 using Timer = System.Windows.Forms.Timer;
@@ -16,30 +20,37 @@ namespace GymRoutineGenerator.UI
         private readonly Timer _searchDebounceTimer;
         private readonly List<ExerciseGalleryItem> _currentResults = new();
         private readonly List<ExerciseSelectionEntry> _selectionEntries = new();
+        private readonly ReadOnlyCollection<ExerciseSelectionEntry> _selectionView;
+        private readonly ManualExerciseSelectionStore? _selectionStore;
         private readonly ToolTip _toolTip = new();
+        private readonly Dictionary<string, ExerciseGalleryCard> _cardIndex = new(StringComparer.OrdinalIgnoreCase);
 
         private TextBox _searchTextBox = null!;
-        private Label _resultsLabel = null!;
-        private ListView _resultsListView = null!;
         private ComboBox _dataSourceComboBox = null!;
+        private Label _resultsLabel = null!;
+        private Label _titleLabel = null!;
+        private Button _openImageLocationButton = null!;
+        private Button _returnToGeneratorButton = null!;
+        private FlowLayoutPanel _galleryPanel = null!;
         private ContextMenuStrip _resultsContextMenu = null!;
-        private Button _addToSelectionButton = null!;
-        private Panel _selectionPanel = null!;
-        private ListView _selectionListView = null!;
-        private Label _selectionHeaderLabel = null!;
-        private Button _copySelectionNamesButton = null!;
-        private Button _copySelectionNamesWithPathButton = null!;
-        private Button _removeSelectionButton = null!;
-        private Button _clearSelectionButton = null!;
-        private ContextMenuStrip _selectionContextMenu = null!;
+        private ExerciseGalleryCard? _activeCard;
 
-        public ExerciseGalleryForm(ManualExerciseLibraryService libraryService)
+        public event EventHandler<ManualExerciseSelectionChangedEventArgs>? SelectionChanged;
+
+        public IReadOnlyList<ExerciseSelectionEntry> Selection => _selectionView;
+
+        public ExerciseGalleryForm(
+            ManualExerciseLibraryService libraryService,
+            ManualExerciseSelectionStore? selectionStore = null)
         {
             _libraryService = libraryService ?? throw new ArgumentNullException(nameof(libraryService));
+            _selectionStore = selectionStore;
+            _selectionView = _selectionEntries.AsReadOnly();
             _searchDebounceTimer = new Timer { Interval = 300 };
             _searchDebounceTimer.Tick += SearchDebounceTimer_Tick;
 
             InitializeComponent();
+            RestoreSelectionFromStore();
         }
 
         private void InitializeComponent()
@@ -47,25 +58,55 @@ namespace GymRoutineGenerator.UI
             SuspendLayout();
 
             Text = "Galeria de ejercicios";
-            StartPosition = FormStartPosition.CenterParent;
-            MinimumSize = new Size(940, 560);
-            Size = new Size(1040, 600);
+            StartPosition = FormStartPosition.CenterScreen;
+            WindowState = FormWindowState.Maximized;
+            MinimumSize = new Size(1280, 800);
+            BackColor = Color.White;
+
+            var topPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 128,
+                Padding = new Padding(24, 24, 24, 16),
+                BackColor = Color.White
+            };
+
+            var topFlow = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                WrapContents = false,
+                AutoSize = false,
+                AutoScroll = false,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+
+            _titleLabel = new Label
+            {
+                Text = "Generador de Rutinas · Galeria de ejercicios",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 16f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(34, 38, 43),
+                Margin = new Padding(0, 0, 0, 16)
+            };
+            topFlow.Controls.Add(_titleLabel);
+            topFlow.SetFlowBreak(_titleLabel, true);
 
             _searchTextBox = new TextBox
             {
                 PlaceholderText = "Buscar ejercicio...",
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Location = new Point(20, 20),
-                Width = 580
+                Width = 340,
+                Margin = new Padding(0, 0, 20, 0),
+                Height = 40
             };
             _searchTextBox.TextChanged += SearchTextBox_TextChanged;
 
             _dataSourceComboBox = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                Location = new Point(620, 20),
-                Width = 150
+                Width = 200,
+                Margin = new Padding(0, 0, 20, 0),
+                Height = 40
             };
             _dataSourceComboBox.Items.AddRange(new object[]
             {
@@ -77,164 +118,82 @@ namespace GymRoutineGenerator.UI
             _dataSourceComboBox.SelectedIndexChanged += DataSourceComboBox_SelectedIndexChanged;
             _toolTip.SetToolTip(_dataSourceComboBox, "Selecciona la fuente de datos para la busqueda.");
 
-            _addToSelectionButton = new Button
+            _openImageLocationButton = new Button
             {
-                Text = "Agregar a seleccion",
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                Location = new Point(790, 18),
-                Size = new Size(150, 32)
+                Text = "Abrir ubicacion de la imagen",
+                Enabled = false,
+                Width = 260,
+                Height = 48,
+                Margin = new Padding(0, 0, 20, 0)
             };
-            _addToSelectionButton.Click += (_, _) => AddSelectedToSelection();
-            _toolTip.SetToolTip(_addToSelectionButton, "Agrega el ejercicio seleccionado a la lista temporal.");
+            _openImageLocationButton.Click += (_, _) => OpenSelectedImageLocation();
+            _toolTip.SetToolTip(_openImageLocationButton, "Abre la carpeta que contiene la imagen del ejercicio.");
+
+            _returnToGeneratorButton = new Button
+            {
+                Text = "Volver al generador",
+                Width = 220,
+                Height = 48,
+                Margin = new Padding(0),
+                BackColor = Color.FromArgb(54, 79, 199),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            _returnToGeneratorButton.FlatAppearance.BorderSize = 0;
+            _returnToGeneratorButton.Click += (_, _) => Close();
+            _toolTip.SetToolTip(_returnToGeneratorButton, "Cerrar la galeria y regresar al generador.");
+
+            topFlow.Controls.Add(_searchTextBox);
+            topFlow.Controls.Add(_dataSourceComboBox);
+            topFlow.Controls.Add(_openImageLocationButton);
+            topFlow.Controls.Add(_returnToGeneratorButton);
+            topPanel.Controls.Add(topFlow);
 
             _resultsLabel = new Label
             {
                 Text = "Escribe al menos 3 caracteres para buscar.",
-                Location = new Point(20, 60),
-                AutoSize = true,
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+                Dock = DockStyle.Top,
+                Height = 30,
+                Padding = new Padding(20, 4, 20, 4),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Color.FromArgb(60, 60, 68),
+                BackColor = Color.White
             };
 
-            _resultsListView = new ListView
+            _galleryPanel = new FlowLayoutPanel
             {
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-                Location = new Point(20, 90),
-                Size = new Size(660, 420),
-                View = View.Details,
-                FullRowSelect = true,
-                HideSelection = false,
-                MultiSelect = false
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                WrapContents = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                Padding = new Padding(28, 16, 28, 28),
+                BackColor = Color.White
             };
-            _resultsListView.Columns.Add("Ejercicio", 250);
-            _resultsListView.Columns.Add("Fuente", 120);
-            _resultsListView.Columns.Add("Grupos musculares", 220);
-            _resultsListView.Columns.Add("Ruta de imagen", 200);
-            _resultsListView.DoubleClick += ResultsListView_DoubleClick;
 
             BuildContextMenu();
-            BuildSelectionPanel();
 
-            Controls.Add(_searchTextBox);
-            Controls.Add(_dataSourceComboBox);
-            Controls.Add(_addToSelectionButton);
+            Controls.Add(_galleryPanel);
             Controls.Add(_resultsLabel);
-            Controls.Add(_resultsListView);
-            Controls.Add(_selectionPanel);
+            Controls.Add(topPanel);
 
             FormClosed += ExerciseGalleryForm_FormClosed;
 
             ResumeLayout(false);
-            PerformLayout();
         }
 
         private void BuildContextMenu()
         {
             _resultsContextMenu = new ContextMenuStrip();
+            _resultsContextMenu.Opening += ResultsContextMenu_Opening;
 
-            var addToSelectionItem = new ToolStripMenuItem("Agregar a seleccion", null, (_, _) => AddSelectedToSelection());
+            var toggleSelectionItem = new ToolStripMenuItem("Agregar a seleccion manual", null, (_, _) => ToggleSelectedInSelection());
             var copyImageItem = new ToolStripMenuItem("Copiar imagen al portapapeles", null, (_, _) => CopySelectedImage());
             var openLocationItem = new ToolStripMenuItem("Abrir ubicacion en el explorador", null, (_, _) => OpenSelectedImageLocation());
 
-            _resultsContextMenu.Items.Add(addToSelectionItem);
+            _resultsContextMenu.Items.Add(toggleSelectionItem);
             _resultsContextMenu.Items.Add(copyImageItem);
             _resultsContextMenu.Items.Add(openLocationItem);
-
-            _resultsListView.ContextMenuStrip = _resultsContextMenu;
-        }
-
-        private void BuildSelectionPanel()
-        {
-            _selectionPanel = new Panel
-            {
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
-                Location = new Point(700, 20),
-                Size = new Size(300, 490)
-            };
-
-            _selectionHeaderLabel = new Label
-            {
-                Text = "Seleccionados (0)",
-                AutoSize = true,
-                Location = new Point(0, 0)
-            };
-
-            _selectionListView = new ListView
-            {
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-                Location = new Point(0, 25),
-                Size = new Size(300, 320),
-                View = View.Details,
-                FullRowSelect = true,
-                HideSelection = false,
-                MultiSelect = false
-            };
-            _selectionListView.Columns.Add("Ejercicio", 160);
-            _selectionListView.Columns.Add("Fuente", 120);
-            _selectionListView.DoubleClick += (_, _) => OpenSelectionLocation();
-
-            BuildSelectionContextMenu();
-            _selectionListView.ContextMenuStrip = _selectionContextMenu;
-
-            _copySelectionNamesButton = new Button
-            {
-                Text = "Copiar nombres",
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
-                Location = new Point(0, 360),
-                Size = new Size(140, 32)
-            };
-            _copySelectionNamesButton.Click += (_, _) => CopySelection(includePaths: false);
-
-            _copySelectionNamesWithPathButton = new Button
-            {
-                Text = "Copiar nombres + rutas",
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                Location = new Point(150, 360),
-                Size = new Size(150, 32)
-            };
-            _copySelectionNamesWithPathButton.Click += (_, _) => CopySelection(includePaths: true);
-
-            _removeSelectionButton = new Button
-            {
-                Text = "Quitar seleccionado",
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
-                Location = new Point(0, 404),
-                Size = new Size(140, 32)
-            };
-            _removeSelectionButton.Click += (_, _) => RemoveSelectedSelection();
-
-            _clearSelectionButton = new Button
-            {
-                Text = "Limpiar lista",
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                Location = new Point(150, 404),
-                Size = new Size(150, 32)
-            };
-            _clearSelectionButton.Click += (_, _) => ClearSelection();
-
-            _selectionPanel.Controls.Add(_selectionHeaderLabel);
-            _selectionPanel.Controls.Add(_selectionListView);
-            _selectionPanel.Controls.Add(_copySelectionNamesButton);
-            _selectionPanel.Controls.Add(_copySelectionNamesWithPathButton);
-            _selectionPanel.Controls.Add(_removeSelectionButton);
-            _selectionPanel.Controls.Add(_clearSelectionButton);
-
-            UpdateSelectionSummary();
-        }
-
-        private void BuildSelectionContextMenu()
-        {
-            _selectionContextMenu = new ContextMenuStrip();
-
-            var copyNameItem = new ToolStripMenuItem("Copiar nombre", null, (_, _) => CopySelection(includePaths: false));
-            var copyNameWithPathItem = new ToolStripMenuItem("Copiar nombre + ruta", null, (_, _) => CopySelection(includePaths: true));
-            var openLocationItem = new ToolStripMenuItem("Abrir ubicacion", null, (_, _) => OpenSelectionLocation());
-            var removeItem = new ToolStripMenuItem("Quitar", null, (_, _) => RemoveSelectedSelection());
-
-            _selectionContextMenu.Items.Add(copyNameItem);
-            _selectionContextMenu.Items.Add(copyNameWithPathItem);
-            _selectionContextMenu.Items.Add(openLocationItem);
-            _selectionContextMenu.Items.Add(new ToolStripSeparator());
-            _selectionContextMenu.Items.Add(removeItem);
         }
 
         private void SearchTextBox_TextChanged(object? sender, EventArgs e)
@@ -259,81 +218,276 @@ namespace GymRoutineGenerator.UI
             var query = _searchTextBox.Text ?? string.Empty;
             if (!force && string.IsNullOrWhiteSpace(query))
             {
-                _resultsListView.Items.Clear();
-                _currentResults.Clear();
-                _resultsLabel.Text = "Escribe al menos 3 caracteres para buscar.";
+                ClearResults("Escribe al menos 3 caracteres para buscar.");
                 return;
             }
 
             if (query.Length < 3)
             {
-                _resultsListView.Items.Clear();
-                _currentResults.Clear();
-                _resultsLabel.Text = "Escribe al menos 3 caracteres para buscar.";
+                ClearResults("Escribe al menos 3 caracteres para buscar.");
                 return;
             }
 
             try
             {
                 var source = GetSelectedDataSource();
-
                 var results = _libraryService.Search(query, source);
                 _currentResults.Clear();
                 _currentResults.AddRange(results);
 
-                _resultsListView.BeginUpdate();
-                _resultsListView.Items.Clear();
+                _galleryPanel.SuspendLayout();
+                DisposeResultCards();
+                _galleryPanel.Controls.Clear();
+                _cardIndex.Clear();
+                SetActiveCard(null);
 
                 foreach (var item in results)
                 {
-                    var listItem = new ListViewItem(item.DisplayName)
+                    var card = new ExerciseGalleryCard();
+                    var resolvedPath = _libraryService.GetImagePath(item) ?? item.ImagePath;
+                    var thumbnail = _libraryService.LoadThumbnail(item, card.ImageDisplaySize);
+                    var detailText = BuildDetailText(item);
+
+                    card.SetData(item, resolvedPath, thumbnail, detailText);
+                    card.ContextMenuStrip = _resultsContextMenu;
+                    card.CardClicked += CardOnCardClicked;
+                    card.CardDoubleClicked += CardOnCardDoubleClicked;
+                    card.CardMouseDown += CardOnCardMouseDown;
+
+                    if (IsItemInManualSelection(item))
                     {
-                        Tag = item
-                    };
+                        card.SetManualSelection(true);
+                    }
 
-                    listItem.SubItems.Add(item.Source);
-                    var groups = item.MuscleGroups.Count > 0 ? string.Join(", ", item.MuscleGroups) : "ND";
-                    listItem.SubItems.Add(groups);
-                    listItem.SubItems.Add(GetPathLabel(_libraryService.GetImagePath(item) ?? item.ImagePath));
-
-                    _resultsListView.Items.Add(listItem);
+                    _cardIndex[item.Id] = card;
+                    _galleryPanel.Controls.Add(card);
                 }
 
-                _resultsListView.EndUpdate();
+                _galleryPanel.ResumeLayout();
 
-                _resultsLabel.Text = results.Count switch
+                UpdateResultsLabel(results.Count);
+
+                if (results.Count > 0 && _galleryPanel.Controls[0] is ExerciseGalleryCard firstCard)
                 {
-                    0 => "Sin resultados. Prueba con otro termino.",
-                    1 => "1 resultado encontrado.",
-                    _ => $"{results.Count} resultados encontrados."
-                };
+                    SetActiveCard(firstCard);
+                }
+                else
+                {
+                    SetActiveCard(null);
+                }
+
+                UpdateActionButtons();
             }
             catch (OperationCanceledException)
             {
-                // Ignorar cancelaciones, son parte del debounce.
+                // Ignorado: parte del debounce.
             }
             catch (Exception ex)
             {
-                _resultsLabel.Text = "Ocurrio un error al buscar. Revisa los logs.";
+                ClearResults("Ocurrio un error al buscar. Revisa los logs.");
                 Debug.WriteLine($"[ExerciseGalleryForm] Error realizando busqueda: {ex}");
             }
         }
 
-        private static string GetPathLabel(string path)
+        private string BuildDetailText(ExerciseGalleryItem item)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            var segments = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(item.Source))
             {
-                return "Sin imagen";
+                segments.Add(item.Source);
             }
 
-            try
+            if (item.MuscleGroups.Count > 0)
             {
-                return Path.GetFileName(path);
+                var muscles = item.MuscleGroups.Take(3).ToArray();
+                var label = string.Join(", ", muscles);
+                segments.Add(label);
             }
-            catch
+
+            return segments.Count == 0 ? "Sin metadatos" : string.Join(" • ", segments);
+        }
+
+        private void ClearResults(string message)
+        {
+            DisposeResultCards();
+            _galleryPanel.Controls.Clear();
+            SetActiveCard(null);
+            _currentResults.Clear();
+            _resultsLabel.Text = message;
+            UpdateActionButtons();
+        }
+
+        private void DisposeResultCards()
+        {
+            foreach (var card in _cardIndex.Values)
             {
-                return path;
+                card.CardClicked -= CardOnCardClicked;
+                card.CardDoubleClicked -= CardOnCardDoubleClicked;
+                card.CardMouseDown -= CardOnCardMouseDown;
+                card.Dispose();
             }
+
+            _cardIndex.Clear();
+            _activeCard = null;
+        }
+
+        private void CardOnCardMouseDown(object? sender, MouseEventArgs e)
+        {
+            if (sender is ExerciseGalleryCard card && e.Button == MouseButtons.Right)
+            {
+                SetActiveCard(card);
+            }
+        }
+
+        private void CardOnCardDoubleClicked(object? sender, EventArgs e)
+        {
+            if (sender is ExerciseGalleryCard card)
+            {
+                SetActiveCard(card);
+                ToggleSelectedInSelection();
+            }
+        }
+
+        private void CardOnCardClicked(object? sender, EventArgs e)
+        {
+            if (sender is ExerciseGalleryCard card)
+            {
+                SetActiveCard(card);
+            }
+        }
+
+        private void SetActiveCard(ExerciseGalleryCard? card)
+        {
+            if (_activeCard == card)
+            {
+                UpdateActionButtons();
+                return;
+            }
+
+            if (_activeCard is { IsDisposed: false })
+            {
+                _activeCard.SetActive(false);
+            }
+
+            _activeCard = card;
+
+            if (_activeCard is { IsDisposed: false })
+            {
+                _activeCard.SetActive(true);
+            }
+
+            UpdateActionButtons();
+        }
+
+        private void UpdateResultsLabel(int count)
+        {
+            _resultsLabel.Text = count switch
+            {
+                0 => "Sin resultados. Proba con otro termino.",
+                1 => "1 resultado encontrado.",
+                _ => $"{count} resultados encontrados."
+            };
+        }
+
+        private void UpdateActionButtons()
+        {
+            var item = GetSelectedGalleryItem();
+            var hasSelection = item != null;
+
+            _openImageLocationButton.Enabled = hasSelection;
+
+            if (!hasSelection)
+            {
+                return;
+            }
+        }
+
+        private bool IsItemInManualSelection(ExerciseGalleryItem item)
+        {
+            return _selectionEntries.Any(entry =>
+                string.Equals(entry.ExerciseId, item.Id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private ManualExerciseDataSource GetSelectedDataSource()
+        {
+            return _dataSourceComboBox.SelectedIndex switch
+            {
+                0 => ManualExerciseDataSource.Primary,
+                1 => ManualExerciseDataSource.Secondary,
+                2 => ManualExerciseDataSource.Combined,
+                _ => ManualExerciseDataSource.Primary
+            };
+        }
+
+        private void ToggleSelectedInSelection()
+        {
+            var item = GetSelectedGalleryItem();
+            if (item == null)
+            {
+                return;
+            }
+
+            if (IsItemInManualSelection(item))
+            {
+                RemoveItemFromSelection(item);
+                _resultsLabel.Text = $"Quitado de la seleccion manual: {item.DisplayName}";
+            }
+            else
+            {
+                AddItemToSelection(item);
+                _resultsLabel.Text = $"Agregado a la seleccion manual: {item.DisplayName}";
+            }
+
+            UpdateManualSelectionIndicators();
+            UpdateActionButtons();
+        }
+
+        private void UpdateManualSelectionIndicators()
+        {
+            foreach (var card in _cardIndex.Values)
+            {
+                var manual = card.Item != null && IsItemInManualSelection(card.Item);
+                card.SetManualSelection(manual);
+            }
+        }
+
+        private void AddItemToSelection(ExerciseGalleryItem item)
+        {
+            if (IsItemInManualSelection(item))
+            {
+                return;
+            }
+
+            var resolvedPath = _libraryService.GetImagePath(item) ?? item.ImagePath;
+            var entry = new ExerciseSelectionEntry(
+                item.Id,
+                item.DisplayName,
+                resolvedPath ?? string.Empty,
+                item.MuscleGroups,
+                DateTime.UtcNow,
+                item.Source);
+
+            _selectionEntries.Add(entry);
+            NotifySelectionChanged();
+        }
+
+        private void RemoveItemFromSelection(ExerciseGalleryItem item)
+        {
+            var existing = _selectionEntries.FirstOrDefault(entry =>
+                string.Equals(entry.ExerciseId, item.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing == null)
+            {
+                return;
+            }
+
+            _selectionEntries.Remove(existing);
+            NotifySelectionChanged();
+        }
+
+        private ExerciseGalleryItem? GetSelectedGalleryItem()
+        {
+            return _activeCard?.Item;
         }
 
         private void CopySelectedImage()
@@ -341,6 +495,7 @@ namespace GymRoutineGenerator.UI
             var item = GetSelectedGalleryItem();
             if (item == null)
             {
+                _resultsLabel.Text = "Selecciona un ejercicio para copiar su imagen.";
                 return;
             }
 
@@ -359,6 +514,7 @@ namespace GymRoutineGenerator.UI
             var item = GetSelectedGalleryItem();
             if (item == null)
             {
+                _resultsLabel.Text = "Selecciona un ejercicio para abrir la imagen.";
                 return;
             }
 
@@ -372,172 +528,353 @@ namespace GymRoutineGenerator.UI
             }
         }
 
-        private void ResultsListView_DoubleClick(object? sender, EventArgs e)
+        private void ResultsContextMenu_Opening(object? sender, CancelEventArgs e)
         {
-            AddSelectedToSelection();
-        }
+            var card = GetOwningCard(_resultsContextMenu.SourceControl);
+            if (card != null)
+            {
+                SetActiveCard(card);
+            }
 
-        private void AddSelectedToSelection()
-        {
             var item = GetSelectedGalleryItem();
             if (item == null)
             {
+                e.Cancel = true;
                 return;
             }
 
-            var existing = _selectionEntries.FirstOrDefault(entry => string.Equals(entry.ExerciseId, item.Id, StringComparison.OrdinalIgnoreCase));
-            if (existing != null)
+            if (_resultsContextMenu.Items.Count >= 1 && _resultsContextMenu.Items[0] is ToolStripMenuItem toggleItem)
             {
-                _resultsLabel.Text = "Este ejercicio ya esta en la seleccion.";
-                return;
-            }
-
-            var resolvedPath = _libraryService.GetImagePath(item) ?? item.ImagePath;
-            var entry = new ExerciseSelectionEntry(
-                item.Id,
-                item.DisplayName,
-                resolvedPath ?? string.Empty,
-                item.MuscleGroups,
-                DateTime.UtcNow,
-                item.Source);
-
-            _selectionEntries.Add(entry);
-            AppendSelectionEntry(entry);
-            UpdateSelectionSummary();
-            _resultsLabel.Text = $"Agregado a la seleccion: {item.DisplayName}";
-        }
-
-        private void AppendSelectionEntry(ExerciseSelectionEntry entry)
-        {
-            var listItem = new ListViewItem(entry.DisplayName)
-            {
-                Tag = entry
-            };
-            listItem.SubItems.Add(string.IsNullOrWhiteSpace(entry.Source) ? "ND" : entry.Source);
-
-            _selectionListView.Items.Add(listItem);
-        }
-
-        private void CopySelection(bool includePaths)
-        {
-            if (_selectionEntries.Count == 0)
-            {
-                _resultsLabel.Text = "La seleccion esta vacia.";
-                return;
-            }
-
-            var builder = new System.Text.StringBuilder();
-            foreach (var entry in _selectionEntries)
-            {
-                var line = includePaths
-                    ? $"{entry.DisplayName} - {entry.ImagePath}"
-                    : entry.DisplayName;
-                builder.AppendLine(line);
-            }
-
-            Clipboard.SetText(builder.ToString().Trim());
-            _resultsLabel.Text = includePaths ? "Lista copiada (nombres + rutas)." : "Lista copiada (solo nombres).";
-        }
-
-        private void RemoveSelectedSelection()
-        {
-            if (_selectionListView.SelectedItems.Count == 0)
-            {
-                _resultsLabel.Text = "Selecciona un elemento para quitar.";
-                return;
-            }
-
-            var selected = _selectionListView.SelectedItems[0];
-            if (selected.Tag is ExerciseSelectionEntry entry)
-            {
-                _selectionEntries.Remove(entry);
-                _selectionListView.Items.Remove(selected);
-                UpdateSelectionSummary();
-                _resultsLabel.Text = $"Quitado: {entry.DisplayName}";
+                toggleItem.Text = IsItemInManualSelection(item)
+                    ? "Quitar de seleccion manual"
+                    : "Agregar a seleccion manual";
             }
         }
 
-        private ManualExerciseDataSource GetSelectedDataSource()
+        private static ExerciseGalleryCard? GetOwningCard(Control? control)
         {
-            return _dataSourceComboBox.SelectedIndex switch
+            while (control != null && control is not ExerciseGalleryCard)
             {
-                0 => ManualExerciseDataSource.Primary,
-                1 => ManualExerciseDataSource.Secondary,
-                2 => ManualExerciseDataSource.Combined,
-                _ => ManualExerciseDataSource.Primary
-            };
-        }
-
-        private void ClearSelection()
-        {
-            if (_selectionEntries.Count == 0)
-            {
-                return;
+                control = control.Parent;
             }
 
+            return control as ExerciseGalleryCard;
+        }
+
+        private void RestoreSelectionFromStore()
+        {
             _selectionEntries.Clear();
-            _selectionListView.Items.Clear();
-            UpdateSelectionSummary();
-            _resultsLabel.Text = "Seleccion vaciada.";
-        }
 
-        private void UpdateSelectionSummary()
-        {
-            _selectionHeaderLabel.Text = $"Seleccionados ({_selectionEntries.Count})";
-            _removeSelectionButton.Enabled = _selectionEntries.Count > 0;
-            _clearSelectionButton.Enabled = _selectionEntries.Count > 0;
-            _copySelectionNamesButton.Enabled = _selectionEntries.Count > 0;
-            _copySelectionNamesWithPathButton.Enabled = _selectionEntries.Count > 0;
-        }
-
-        private void OpenSelectionLocation()
-        {
-            if (_selectionListView.SelectedItems.Count == 0)
+            if (_selectionStore == null)
             {
                 return;
             }
 
-            if (_selectionListView.SelectedItems[0].Tag is ExerciseSelectionEntry entry)
+            var existing = _selectionStore.CurrentSelection;
+            if (existing.Count == 0)
             {
-                if (!string.IsNullOrWhiteSpace(entry.ImagePath) && File.Exists(entry.ImagePath))
-                {
-                    try
-                    {
-                        var psi = new ProcessStartInfo
-                        {
-                            FileName = "explorer.exe",
-                            Arguments = $"/select,\"{entry.ImagePath}\"",
-                            UseShellExecute = true
-                        };
-                        Process.Start(psi);
-                    }
-                    catch (Exception ex)
-                    {
-                        _resultsLabel.Text = "No se pudo abrir la ubicacion del archivo.";
-                        Debug.WriteLine($"[ExerciseGalleryForm] Error abriendo seleccion: {ex}");
-                    }
-                }
-                else
-                {
-                    _resultsLabel.Text = "Ruta no disponible para este ejercicio.";
-                }
+                return;
             }
+
+            _selectionEntries.AddRange(existing);
         }
 
-        private ExerciseGalleryItem? GetSelectedGalleryItem()
+        private void NotifySelectionChanged()
         {
-            if (_resultsListView.SelectedItems.Count == 0)
-            {
-                return null;
-            }
+            var snapshot = _selectionEntries.Select(entry => entry).ToArray();
+            var readOnly = new ReadOnlyCollection<ExerciseSelectionEntry>(snapshot);
 
-            return _resultsListView.SelectedItems[0].Tag as ExerciseGalleryItem;
+            _selectionStore?.UpdateSelectionSnapshot(snapshot);
+            SelectionChanged?.Invoke(this, new ManualExerciseSelectionChangedEventArgs(readOnly));
         }
 
         private void ExerciseGalleryForm_FormClosed(object? sender, FormClosedEventArgs e)
         {
             _searchDebounceTimer.Stop();
             _searchDebounceTimer.Dispose();
+            DisposeResultCards();
         }
     }
+
+    internal sealed class ExerciseGalleryCard : Panel
+    {
+        private static readonly Color BaseColor = Color.White;
+        private static readonly Color HoverColor = Color.FromArgb(247, 247, 249);
+        private static readonly Color ActiveColor = Color.FromArgb(235, 240, 255);
+        private static readonly Color BorderColor = Color.FromArgb(218, 220, 224);
+        private static readonly Color SelectedBorderColor = Color.FromArgb(82, 133, 246);
+
+        private readonly Panel _imagePanel;
+        private readonly Label _placeholderLabel;
+        private readonly Label _titleLabel;
+        private readonly Label _detailLabel;
+        private readonly Panel _textContainer;
+
+        private Image? _thumbnail;
+        private bool _isActive;
+        private bool _isManualSelected;
+        private int _hoverDepth;
+
+        public ExerciseGalleryCard()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.UserPaint |
+                     ControlStyles.OptimizedDoubleBuffer |
+                     ControlStyles.ResizeRedraw |
+                     ControlStyles.SupportsTransparentBackColor, true);
+
+            BackColor = BaseColor;
+            Margin = new Padding(20);
+            Size = new Size(280, 300);
+            Cursor = Cursors.Hand;
+            DoubleBuffered = true;
+
+            _imagePanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 170,
+                BackColor = Color.White
+            };
+            _imagePanel.Paint += ImagePanel_Paint;
+
+            _textContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16, 14, 16, 16),
+                BackColor = BaseColor
+            };
+
+            _titleLabel = new Label
+            {
+                Dock = DockStyle.Top,
+                AutoSize = false,
+                Height = 68,
+                Font = new Font("Segoe UI", 12.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(44, 48, 52),
+                TextAlign = ContentAlignment.TopLeft,
+                AutoEllipsis = false,
+                UseMnemonic = false,
+                Padding = new Padding(0, 0, 0, 6)
+            };
+
+            _detailLabel = new Label
+            {
+                Dock = DockStyle.Top,
+                AutoSize = false,
+                Height = 44,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(120, 124, 130),
+                TextAlign = ContentAlignment.TopLeft
+            };
+
+            _placeholderLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "Sin imagen",
+                Font = new Font("Segoe UI", 9f, FontStyle.Italic),
+                ForeColor = Color.FromArgb(150, 150, 156),
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = Color.FromArgb(248, 248, 250)
+            };
+            _imagePanel.Controls.Add(_placeholderLabel);
+
+            _textContainer.Controls.Add(_detailLabel);
+            _textContainer.Controls.Add(_titleLabel);
+
+            Controls.Add(_textContainer);
+            Controls.Add(_imagePanel);
+
+            AttachInteractionHandlers(this);
+        }
+
+        public ExerciseGalleryItem? Item { get; private set; }
+
+        public string? ResolvedImagePath { get; private set; }
+
+        public Size ImageDisplaySize => new Size(220, 160);
+
+        public event EventHandler? CardClicked;
+        public event EventHandler? CardDoubleClicked;
+        public event MouseEventHandler? CardMouseDown;
+
+        public void SetData(ExerciseGalleryItem item, string? resolvedImagePath, Image? thumbnail, string? detailText)
+        {
+            Item = item ?? throw new ArgumentNullException(nameof(item));
+            ResolvedImagePath = resolvedImagePath;
+
+            _titleLabel.Text = item.DisplayName;
+            _detailLabel.Text = detailText ?? string.Empty;
+
+            SetThumbnail(thumbnail);
+            if (_thumbnail == null && !string.IsNullOrWhiteSpace(ResolvedImagePath) && File.Exists(ResolvedImagePath))
+            {
+                try
+                {
+                    SetThumbnail(Image.FromFile(ResolvedImagePath));
+                }
+                catch
+                {
+                    // ignore: placeholder remains visible
+                }
+            }
+            UpdateVisualState();
+        }
+
+        public void SetActive(bool isActive)
+        {
+            if (_isActive == isActive)
+            {
+                return;
+            }
+
+            _isActive = isActive;
+            UpdateVisualState();
+        }
+
+        public void SetManualSelection(bool selected)
+        {
+            if (_isManualSelected == selected)
+            {
+                return;
+            }
+
+            _isManualSelected = selected;
+            UpdateVisualState();
+        }
+
+        protected override void OnResize(EventArgs eventargs)
+        {
+            base.OnResize(eventargs);
+            UpdateRoundedRegion();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            var rect = ClientRectangle;
+            rect.Inflate(-1, -1);
+
+            using var borderPen = new Pen(_isManualSelected ? SelectedBorderColor : BorderColor, _isActive ? 2.5f : 1.5f);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.DrawRectangle(borderPen, rect);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                SetThumbnail(null);
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private void UpdateVisualState()
+        {
+            var background = _isActive
+                ? ActiveColor
+                : _hoverDepth > 0 ? HoverColor : BaseColor;
+
+            BackColor = background;
+            _textContainer.BackColor = background;
+            Invalidate();
+        }
+
+        private void SetThumbnail(Image? thumbnail)
+        {
+            if (ReferenceEquals(_thumbnail, thumbnail))
+            {
+                return;
+            }
+
+            _thumbnail?.Dispose();
+            _thumbnail = thumbnail != null ? new Bitmap(thumbnail) : null;
+
+            var hasImage = _thumbnail != null;
+            _placeholderLabel.Visible = !hasImage;
+            _imagePanel.Invalidate();
+        }
+
+        private void ImagePanel_Paint(object? sender, PaintEventArgs e)
+        {
+            e.Graphics.Clear(Color.White);
+
+            if (_thumbnail == null)
+            {
+                return;
+            }
+
+            var bounds = new Rectangle(0, 0, _imagePanel.Width, _imagePanel.Height);
+            var target = CalculateImageRect(_thumbnail.Size, bounds);
+
+            e.Graphics.CompositingQuality = CompositingQuality.HighQuality;
+            e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            e.Graphics.SmoothingMode = SmoothingMode.HighQuality;
+            e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+            e.Graphics.DrawImage(_thumbnail, target);
+        }
+
+        private static Rectangle CalculateImageRect(Size imageSize, Rectangle bounds)
+        {
+            if (imageSize.Width <= 0 || imageSize.Height <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return bounds;
+            }
+
+            var ratio = Math.Min((double)bounds.Width / imageSize.Width, (double)bounds.Height / imageSize.Height);
+            var width = Math.Max(1, (int)Math.Round(imageSize.Width * ratio));
+            var height = Math.Max(1, (int)Math.Round(imageSize.Height * ratio));
+            var x = bounds.X + (bounds.Width - width) / 2;
+            var y = bounds.Y + (bounds.Height - height) / 2;
+
+            return new Rectangle(x, y, width, height);
+        }
+
+
+        private void AttachInteractionHandlers(Control control)
+        {
+            control.MouseEnter += (_, _) => AdjustHover(1);
+            control.MouseLeave += (_, _) => AdjustHover(-1);
+            control.Click += (_, _) => CardClicked?.Invoke(this, EventArgs.Empty);
+            control.DoubleClick += (_, _) => CardDoubleClicked?.Invoke(this, EventArgs.Empty);
+            control.MouseDown += (s, e) => CardMouseDown?.Invoke(this, e);
+
+            foreach (Control child in control.Controls)
+            {
+                AttachInteractionHandlers(child);
+            }
+        }
+
+        private void AdjustHover(int delta)
+        {
+            _hoverDepth = Math.Max(0, _hoverDepth + delta);
+            UpdateVisualState();
+        }
+
+        private void UpdateRoundedRegion()
+        {
+            if (Width <= 0 || Height <= 0)
+            {
+                return;
+            }
+
+            var handle = NativeMethods.CreateRoundRectRgn(0, 0, Width, Height, 18, 18);
+            var region = Region.FromHrgn(handle);
+            NativeMethods.DeleteObject(handle);
+            Region = region;
+        }
+    }
+
+    internal static class NativeMethods
+    {
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+        [DllImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool DeleteObject(IntPtr hObject);
+    }
 }
+

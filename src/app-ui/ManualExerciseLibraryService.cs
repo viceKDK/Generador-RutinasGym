@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -12,6 +13,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using GymRoutineGenerator.UI.Models;
+using System.Runtime.InteropServices;
 
 namespace GymRoutineGenerator.UI
 {
@@ -26,6 +28,8 @@ namespace GymRoutineGenerator.UI
         private readonly SecondaryExerciseDatabase _secondaryDatabase;
         private readonly Lazy<IReadOnlyList<ExerciseIndexEntry>> _primaryIndex;
         private readonly Lazy<IReadOnlyList<ExerciseIndexEntry>> _secondaryIndex;
+        private readonly string? _docsExercisesPath;
+        private readonly Lazy<Dictionary<string, string>> _docsImageLookup;
 
         private readonly object _cacheLock = new();
         private readonly Dictionary<string, Bitmap> _thumbnailCache = new(StringComparer.OrdinalIgnoreCase);
@@ -48,6 +52,8 @@ namespace GymRoutineGenerator.UI
 
             _primaryIndex = new Lazy<IReadOnlyList<ExerciseIndexEntry>>(BuildPrimaryIndex, LazyThreadSafetyMode.ExecutionAndPublication);
             _secondaryIndex = new Lazy<IReadOnlyList<ExerciseIndexEntry>>(BuildSecondaryIndex, LazyThreadSafetyMode.ExecutionAndPublication);
+            _docsExercisesPath = FindDocsEjerciciosPath(AppDomain.CurrentDomain.BaseDirectory);
+            _docsImageLookup = new Lazy<Dictionary<string, string>>(BuildDocsImageLookup, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         /// <summary>
@@ -128,6 +134,12 @@ namespace GymRoutineGenerator.UI
                 }
             }
 
+            var docsPath = ResolveImageFromDocs(exerciseName);
+            if (!string.IsNullOrWhiteSpace(docsPath))
+            {
+                return docsPath;
+            }
+
             return null;
         }
 
@@ -157,6 +169,12 @@ namespace GymRoutineGenerator.UI
                 {
                     return candidate;
                 }
+            }
+
+            var docsPath = ResolveImageFromDocs(item.Name, item.EnglishName, item.DisplayName);
+            if (!string.IsNullOrWhiteSpace(docsPath))
+            {
+                return docsPath;
             }
 
             return null;
@@ -355,6 +373,12 @@ namespace GymRoutineGenerator.UI
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ManualExerciseLibraryService] Error creating thumbnail: {ex.Message}");
+                var fallbackBitmap = TryLoadThumbnailFromShell(item.ImagePath, targetSize);
+                if (fallbackBitmap != null)
+                {
+                    StoreInCache(cacheKey, fallbackBitmap);
+                    return new Bitmap(fallbackBitmap);
+                }
                 return null;
             }
         }
@@ -465,6 +489,7 @@ namespace GymRoutineGenerator.UI
             try
             {
                 var metadata = _searchService.FindExerciseWithImage(entry.OriginalName);
+                var fallbackImage = ResolveImageFromDocs(entry.OriginalName);
 
                 var resolvedIdBase = Normalize(metadata?.Name ?? entry.OriginalName);
                 if (string.IsNullOrEmpty(resolvedIdBase))
@@ -478,12 +503,23 @@ namespace GymRoutineGenerator.UI
 
                 if (metadata == null)
                 {
-                    return new ExerciseGalleryItem(
-                        resolvedId,
-                        entry.OriginalName,
-                        null,
-                        entry.MuscleGroups,
-                        entry.ImagePath ?? string.Empty,
+                    var imagePath = entry.ImagePath;
+                if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                {
+                    imagePath = fallbackImage ?? string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                {
+                    return null;
+                }
+
+                return new ExerciseGalleryItem(
+                    resolvedId,
+                    entry.OriginalName,
+                    null,
+                    entry.MuscleGroups,
+                        imagePath ?? string.Empty,
                         Array.Empty<string>(),
                         entry.Source == ManualExerciseDataSource.Primary ? "BD Principal" : "BD Secundaria");
                 }
@@ -497,9 +533,19 @@ namespace GymRoutineGenerator.UI
                     groups = entry.MuscleGroups;
                 }
 
-                var imagePath = !string.IsNullOrWhiteSpace(metadata.ImagePath)
+                var resolvedImagePath = !string.IsNullOrWhiteSpace(metadata.ImagePath) && File.Exists(metadata.ImagePath)
                     ? metadata.ImagePath
-                    : entry.ImagePath ?? string.Empty;
+                    : entry.ImagePath;
+
+                if (string.IsNullOrWhiteSpace(resolvedImagePath) || !File.Exists(resolvedImagePath))
+                {
+                    resolvedImagePath = fallbackImage ?? string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(resolvedImagePath) || !File.Exists(resolvedImagePath))
+                {
+                    return null;
+                }
 
                 var keywords = metadata.Keywords ?? Array.Empty<string>();
                 var sourceLabel = !string.IsNullOrWhiteSpace(metadata.Source)
@@ -511,7 +557,7 @@ namespace GymRoutineGenerator.UI
                     metadata.Name ?? entry.OriginalName,
                     metadata.EnglishName,
                     groups,
-                    imagePath,
+                    resolvedImagePath,
                     keywords,
                     sourceLabel);
             }
@@ -596,23 +642,83 @@ namespace GymRoutineGenerator.UI
 
         private static Bitmap ResizeImage(Image original, Size targetSize)
         {
+            using var normalized = NormalizeBackground(original);
+
             var ratio = Math.Min(
-                (double)targetSize.Width / original.Width,
-                (double)targetSize.Height / original.Height);
+                (double)targetSize.Width / normalized.Width,
+                (double)targetSize.Height / normalized.Height);
 
-            var width = Math.Max(1, (int)Math.Round(original.Width * ratio));
-            var height = Math.Max(1, (int)Math.Round(original.Height * ratio));
+            var width = Math.Max(1, (int)Math.Round(normalized.Width * ratio));
+            var height = Math.Max(1, (int)Math.Round(normalized.Height * ratio));
 
-            var bitmap = new Bitmap(width, height);
+            var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
 
             using var graphics = Graphics.FromImage(bitmap);
+            graphics.Clear(Color.Transparent);
             graphics.CompositingQuality = CompositingQuality.HighQuality;
+            graphics.CompositingMode = CompositingMode.SourceOver;
             graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
             graphics.SmoothingMode = SmoothingMode.HighQuality;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            graphics.DrawImage(original, new Rectangle(0, 0, width, height));
+            graphics.DrawImage(normalized, new Rectangle(0, 0, width, height));
 
             return bitmap;
+        }
+
+        private static Bitmap NormalizeBackground(Image source)
+        {
+            var bitmap = new Bitmap(source.Width, source.Height, PixelFormat.Format32bppPArgb);
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                g.CompositingMode = CompositingMode.SourceCopy;
+                g.DrawImage(source, 0, 0, source.Width, source.Height);
+            }
+
+            if (bitmap.Width == 0 || bitmap.Height == 0)
+            {
+                return bitmap;
+            }
+
+            var key = bitmap.GetPixel(0, 0);
+            if (key.A < 240)
+            {
+                return bitmap;
+            }
+
+            ApplyAlphaMask(bitmap, key, 24);
+            return bitmap;
+        }
+
+        private static void ApplyAlphaMask(Bitmap bitmap, Color key, int tolerance)
+        {
+            var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            var data = bitmap.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
+
+            unsafe
+            {
+                for (int y = 0; y < data.Height; y++)
+                {
+                    var row = (int*)((byte*)data.Scan0 + y * data.Stride);
+                    for (int x = 0; x < data.Width; x++)
+                    {
+                        var pixel = row[x];
+                        var a = (pixel >> 24) & 0xFF;
+                        var r = (pixel >> 16) & 0xFF;
+                        var g = (pixel >> 8) & 0xFF;
+                        var b = pixel & 0xFF;
+
+                        if (a >= 200 &&
+                            Math.Abs(r - key.R) <= tolerance &&
+                            Math.Abs(g - key.G) <= tolerance &&
+                            Math.Abs(b - key.B) <= tolerance)
+                        {
+                            row[x] = 0;
+                        }
+                    }
+                }
+            }
+
+            bitmap.UnlockBits(data);
         }
 
         private static string Normalize(string value)
@@ -638,6 +744,161 @@ namespace GymRoutineGenerator.UI
             stripped = MultipleSpacesRegex.Replace(stripped, " ").Trim();
 
             return stripped;
+        }
+
+        private string FindDocsEjerciciosPath(string startPath)
+        {
+            try
+            {
+                var current = new DirectoryInfo(startPath);
+                for (int i = 0; i < 10 && current != null; i++)
+                {
+                    var docsPath = Path.Combine(current.FullName, "docs", "ejercicios");
+                    if (Directory.Exists(docsPath))
+                    {
+                        return docsPath;
+                    }
+
+                    current = current.Parent;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ManualExerciseLibraryService] Error buscando docs/ejercicios: {ex.Message}");
+            }
+
+            return string.Empty;
+        }
+
+        private Dictionary<string, string> BuildDocsImageLookup()
+        {
+            var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(_docsExercisesPath) || !Directory.Exists(_docsExercisesPath))
+            {
+                return lookup;
+            }
+
+            try
+            {
+                foreach (var muscleDir in Directory.GetDirectories(_docsExercisesPath))
+                {
+                    foreach (var exerciseDir in Directory.GetDirectories(muscleDir))
+                    {
+                        var exerciseName = Path.GetFileName(exerciseDir);
+                        var normalized = Normalize(exerciseName);
+                        if (string.IsNullOrEmpty(normalized) || lookup.ContainsKey(normalized))
+                        {
+                            continue;
+                        }
+
+                        var imageFile = Directory.GetFiles(exerciseDir, "*.*")
+                            .Where(IsSupportedImage)
+                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                            .FirstOrDefault();
+
+                        if (!string.IsNullOrWhiteSpace(imageFile))
+                        {
+                            lookup[normalized] = Path.GetFullPath(imageFile);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ManualExerciseLibraryService] Error construyendo indice de docs: {ex.Message}");
+            }
+
+            return lookup;
+        }
+
+        private string? ResolveImageFromDocs(params string?[] names)
+        {
+            if (_docsImageLookup == null)
+            {
+                return null;
+            }
+
+            foreach (var name in names)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                var normalized = Normalize(name);
+                if (string.IsNullOrEmpty(normalized))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var lookup = _docsImageLookup.Value;
+                    if (lookup.TryGetValue(normalized, out var path) && File.Exists(path))
+                    {
+                        return path;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ManualExerciseLibraryService] Error resolviendo imagen desde docs: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsSupportedImage(string filePath)
+        {
+            return filePath.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                   filePath.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                   filePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                   filePath.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Bitmap? TryLoadThumbnailFromShell(string? path, Size targetSize)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                var guid = typeof(IShellItemImageFactory).GUID;
+                SHCreateItemFromParsingName(path, IntPtr.Zero, ref guid, out var factory);
+                try
+                {
+                    var size = new SIZE { cx = targetSize.Width, cy = targetSize.Height };
+                    factory.GetImage(size, SIIGBF.SIIGBF_BIGGERSIZEOK | SIIGBF.SIIGBF_RESIZETOFIT | SIIGBF.SIIGBF_SCALEUP, out var hBitmap);
+                    if (hBitmap != IntPtr.Zero)
+                    {
+                        try
+                        {
+                            using var bmp = Image.FromHbitmap(hBitmap);
+                            return ResizeImage(bmp, targetSize);
+                        }
+                        finally
+                        {
+                            DeleteObject(hBitmap);
+                        }
+                    }
+                }
+                finally
+                {
+                    if (factory != null)
+                    {
+                        Marshal.ReleaseComObject(factory);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ManualExerciseLibraryService] Shell thumbnail fallback failed: {ex.Message}");
+            }
+
+            return null;
         }
 
         private IEnumerable<ExerciseIndexEntry> EnumerateIndex(ManualExerciseDataSource source)
@@ -692,6 +953,41 @@ namespace GymRoutineGenerator.UI
 
             captured?.Throw();
         }
+
+        [ComImport]
+        [Guid("BCC18B79-BA16-442F-80C4-8A59C30C463B")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IShellItemImageFactory
+        {
+            void GetImage(SIZE size, SIIGBF flags, out IntPtr phbm);
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SIZE
+        {
+            public int cx;
+            public int cy;
+        }
+
+        [Flags]
+        private enum SIIGBF
+        {
+            SIIGBF_RESIZETOFIT = 0x00,
+            SIIGBF_BIGGERSIZEOK = 0x01,
+            SIIGBF_MEMORYONLY = 0x02,
+            SIIGBF_ICONONLY = 0x04,
+            SIIGBF_THUMBNAILONLY = 0x08,
+            SIIGBF_INCACHEONLY = 0x10,
+            SIIGBF_CROPTOBORDER = 0x20,
+            SIIGBF_SCALEUP = 0x40
+        }
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+        private static extern void SHCreateItemFromParsingName(string pszPath, IntPtr pbc, ref Guid riid, out IShellItemImageFactory ppv);
+
+        [DllImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DeleteObject(IntPtr hObject);
 
         private sealed class ExerciseIndexEntry
         {
