@@ -21,7 +21,7 @@ namespace GymRoutineGenerator.UI
         private TextBox _searchTextBox = null!;
         private Label _resultsLabel = null!;
         private ListView _resultsListView = null!;
-        private CheckBox _secondaryDatabaseCheckBox = null!;
+        private ComboBox _dataSourceComboBox = null!;
         private ContextMenuStrip _resultsContextMenu = null!;
         private Button _addToSelectionButton = null!;
         private Panel _selectionPanel = null!;
@@ -46,7 +46,7 @@ namespace GymRoutineGenerator.UI
         {
             SuspendLayout();
 
-            Text = "Galería de ejercicios";
+            Text = "Galeria de ejercicios";
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(940, 560);
             Size = new Size(1040, 600);
@@ -60,21 +60,28 @@ namespace GymRoutineGenerator.UI
             };
             _searchTextBox.TextChanged += SearchTextBox_TextChanged;
 
-            _secondaryDatabaseCheckBox = new CheckBox
+            _dataSourceComboBox = new ComboBox
             {
-                Text = "Mostrar BD secundaria",
+                DropDownStyle = ComboBoxStyle.DropDownList,
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                Location = new Point(620, 22),
-                AutoSize = true
+                Location = new Point(620, 20),
+                Width = 150
             };
-            _secondaryDatabaseCheckBox.CheckedChanged += SecondaryDatabaseCheckBox_CheckedChanged;
-            _toolTip.SetToolTip(_secondaryDatabaseCheckBox, "Activa esta opción para consultar únicamente la base secundaria de ejercicios.");
+            _dataSourceComboBox.Items.AddRange(new object[]
+            {
+                "BD principal",
+                "BD secundaria",
+                "Ambas"
+            });
+            _dataSourceComboBox.SelectedIndex = 0;
+            _dataSourceComboBox.SelectedIndexChanged += DataSourceComboBox_SelectedIndexChanged;
+            _toolTip.SetToolTip(_dataSourceComboBox, "Selecciona la fuente de datos para la busqueda.");
 
             _addToSelectionButton = new Button
             {
-                Text = "Agregar a selección",
+                Text = "Agregar a seleccion",
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                Location = new Point(780, 18),
+                Location = new Point(790, 18),
                 Size = new Size(150, 32)
             };
             _addToSelectionButton.Click += (_, _) => AddSelectedToSelection();
@@ -108,7 +115,7 @@ namespace GymRoutineGenerator.UI
             BuildSelectionPanel();
 
             Controls.Add(_searchTextBox);
-            Controls.Add(_secondaryDatabaseCheckBox);
+            Controls.Add(_dataSourceComboBox);
             Controls.Add(_addToSelectionButton);
             Controls.Add(_resultsLabel);
             Controls.Add(_resultsListView);
@@ -124,9 +131,9 @@ namespace GymRoutineGenerator.UI
         {
             _resultsContextMenu = new ContextMenuStrip();
 
-            var addToSelectionItem = new ToolStripMenuItem("Agregar a selección", null, (_, _) => AddSelectedToSelection());
+            var addToSelectionItem = new ToolStripMenuItem("Agregar a seleccion", null, (_, _) => AddSelectedToSelection());
             var copyImageItem = new ToolStripMenuItem("Copiar imagen al portapapeles", null, (_, _) => CopySelectedImage());
-            var openLocationItem = new ToolStripMenuItem("Abrir ubicación en el explorador", null, (_, _) => OpenSelectedImageLocation());
+            var openLocationItem = new ToolStripMenuItem("Abrir ubicacion en el explorador", null, (_, _) => OpenSelectedImageLocation());
 
             _resultsContextMenu.Items.Add(addToSelectionItem);
             _resultsContextMenu.Items.Add(copyImageItem);
@@ -220,7 +227,7 @@ namespace GymRoutineGenerator.UI
 
             var copyNameItem = new ToolStripMenuItem("Copiar nombre", null, (_, _) => CopySelection(includePaths: false));
             var copyNameWithPathItem = new ToolStripMenuItem("Copiar nombre + ruta", null, (_, _) => CopySelection(includePaths: true));
-            var openLocationItem = new ToolStripMenuItem("Abrir ubicación", null, (_, _) => OpenSelectionLocation());
+            var openLocationItem = new ToolStripMenuItem("Abrir ubicacion", null, (_, _) => OpenSelectionLocation());
             var removeItem = new ToolStripMenuItem("Quitar", null, (_, _) => RemoveSelectedSelection());
 
             _selectionContextMenu.Items.Add(copyNameItem);
@@ -236,7 +243,7 @@ namespace GymRoutineGenerator.UI
             _searchDebounceTimer.Start();
         }
 
-        private void SecondaryDatabaseCheckBox_CheckedChanged(object? sender, EventArgs e)
+        private void DataSourceComboBox_SelectedIndexChanged(object? sender, EventArgs e)
         {
             PerformSearch(force: true);
         }
@@ -254,11 +261,11 @@ namespace GymRoutineGenerator.UI
             {
                 _resultsListView.Items.Clear();
                 _currentResults.Clear();
-            _resultsLabel.Text = "Escribe al menos 3 caracteres para buscar.";
-            return;
-        }
+                _resultsLabel.Text = "Escribe al menos 3 caracteres para buscar.";
+                return;
+            }
 
-        if (query.Length < 3)
+            if (query.Length < 3)
             {
                 _resultsListView.Items.Clear();
                 _currentResults.Clear();
@@ -268,9 +275,7 @@ namespace GymRoutineGenerator.UI
 
             try
             {
-                var source = _secondaryDatabaseCheckBox.Checked
-                    ? ManualExerciseDataSource.Secondary
-                    : ManualExerciseDataSource.Primary;
+                var source = GetSelectedDataSource();
 
                 var results = _libraryService.Search(query, source);
                 _currentResults.Clear();
@@ -298,7 +303,7 @@ namespace GymRoutineGenerator.UI
 
                 _resultsLabel.Text = results.Count switch
                 {
-                    0 => "Sin resultados. Prueba con otro término.",
+                    0 => "Sin resultados. Prueba con otro termino.",
                     1 => "1 resultado encontrado.",
                     _ => $"{results.Count} resultados encontrados."
                 };
@@ -309,8 +314,8 @@ namespace GymRoutineGenerator.UI
             }
             catch (Exception ex)
             {
-                _resultsLabel.Text = "Ocurrió un error al buscar. Revisa los logs.";
-                Debug.WriteLine($"[ExerciseGalleryForm] Error realizando búsqueda: {ex}");
+                _resultsLabel.Text = "Ocurrio un error al buscar. Revisa los logs.";
+                Debug.WriteLine($"[ExerciseGalleryForm] Error realizando busqueda: {ex}");
             }
         }
 
@@ -359,11 +364,11 @@ namespace GymRoutineGenerator.UI
 
             if (_libraryService.TryOpenImageLocation(item))
             {
-                _resultsLabel.Text = $"Abriendo ubicación de: {item.DisplayName}";
+                _resultsLabel.Text = $"Abriendo ubicacion de: {item.DisplayName}";
             }
             else
             {
-                _resultsLabel.Text = "No se pudo abrir la ubicación del archivo.";
+                _resultsLabel.Text = "No se pudo abrir la ubicacion del archivo.";
             }
         }
 
@@ -383,7 +388,7 @@ namespace GymRoutineGenerator.UI
             var existing = _selectionEntries.FirstOrDefault(entry => string.Equals(entry.ExerciseId, item.Id, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
             {
-                _resultsLabel.Text = "Este ejercicio ya está en la selección.";
+                _resultsLabel.Text = "Este ejercicio ya esta en la seleccion.";
                 return;
             }
 
@@ -399,7 +404,7 @@ namespace GymRoutineGenerator.UI
             _selectionEntries.Add(entry);
             AppendSelectionEntry(entry);
             UpdateSelectionSummary();
-            _resultsLabel.Text = $"Agregado a la selección: {item.DisplayName}";
+            _resultsLabel.Text = $"Agregado a la seleccion: {item.DisplayName}";
         }
 
         private void AppendSelectionEntry(ExerciseSelectionEntry entry)
@@ -417,7 +422,7 @@ namespace GymRoutineGenerator.UI
         {
             if (_selectionEntries.Count == 0)
             {
-                _resultsLabel.Text = "La selección está vacía.";
+                _resultsLabel.Text = "La seleccion esta vacia.";
                 return;
             }
 
@@ -452,6 +457,17 @@ namespace GymRoutineGenerator.UI
             }
         }
 
+        private ManualExerciseDataSource GetSelectedDataSource()
+        {
+            return _dataSourceComboBox.SelectedIndex switch
+            {
+                0 => ManualExerciseDataSource.Primary,
+                1 => ManualExerciseDataSource.Secondary,
+                2 => ManualExerciseDataSource.Combined,
+                _ => ManualExerciseDataSource.Primary
+            };
+        }
+
         private void ClearSelection()
         {
             if (_selectionEntries.Count == 0)
@@ -462,7 +478,7 @@ namespace GymRoutineGenerator.UI
             _selectionEntries.Clear();
             _selectionListView.Items.Clear();
             UpdateSelectionSummary();
-            _resultsLabel.Text = "Selección vaciada.";
+            _resultsLabel.Text = "Seleccion vaciada.";
         }
 
         private void UpdateSelectionSummary()
@@ -497,8 +513,8 @@ namespace GymRoutineGenerator.UI
                     }
                     catch (Exception ex)
                     {
-                        _resultsLabel.Text = "No se pudo abrir la ubicación del archivo.";
-                        Debug.WriteLine($"[ExerciseGalleryForm] Error abriendo selección: {ex}");
+                        _resultsLabel.Text = "No se pudo abrir la ubicacion del archivo.";
+                        Debug.WriteLine($"[ExerciseGalleryForm] Error abriendo seleccion: {ex}");
                     }
                 }
                 else

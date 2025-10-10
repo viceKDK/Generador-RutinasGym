@@ -150,7 +150,16 @@ namespace GymRoutineGenerator.UI
                 }
             }
 
-            return GetImagePath(item.DisplayName);
+            foreach (var name in new[] { item.Name, item.EnglishName, item.DisplayName })
+            {
+                var candidate = GetImagePath(name ?? string.Empty);
+                if (!string.IsNullOrWhiteSpace(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
