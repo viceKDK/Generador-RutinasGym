@@ -311,6 +311,49 @@ namespace GymRoutineGenerator.UI
         }
 
         /// <summary>
+        /// Obtiene todos los ejercicios almacenados en la base secundaria.
+        /// </summary>
+        public List<ExerciseImageInfo> GetAllExercises()
+        {
+            var exercises = new List<ExerciseImageInfo>();
+
+            try
+            {
+                using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+                connection.Open();
+
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT Nombre, GrupoMuscular, RutaImagen
+                    FROM Ejercicios
+                    ORDER BY Nombre COLLATE NOCASE";
+
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                    var groups = reader.IsDBNull(1)
+                        ? Array.Empty<string>()
+                        : new[] { reader.GetString(1) };
+
+                    exercises.Add(new ExerciseImageInfo
+                    {
+                        Name = reader.GetString(0),
+                        ImagePath = imagePath,
+                        MuscleGroups = groups,
+                        Source = "BD Secundaria"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al obtener todos los ejercicios de la BD secundaria: {ex.Message}");
+            }
+
+            return exercises;
+        }
+
+        /// <summary>
         /// Obtiene estadísticas de la BD secundaria
         /// </summary>
         public (int totalExercicios, int gruposMusculares) GetStatistics()

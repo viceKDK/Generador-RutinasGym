@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -48,6 +49,10 @@ namespace GymRoutineGenerator.UI
         private ModernCard routineCard;
         private MenuStrip menuStrip;
         private StatusStrip statusStrip;
+
+        private readonly ExerciseImageSearchService exerciseSearchService = new();
+        private ManualExerciseLibraryService? manualExerciseLibraryService;
+        private ExerciseGalleryForm? exerciseGalleryForm;
 
         // Enhanced progress and preview
         private ProgressIndicatorHelper? progressHelper;
@@ -489,6 +494,10 @@ namespace GymRoutineGenerator.UI
             var imagesManagerItem = new ToolStripMenuItem("Gestor de imágenes...");
             imagesManagerItem.Click += (s, e) => ShowImageManager();
             toolsMenu.DropDownItems.Add(imagesManagerItem);
+
+            var exerciseGalleryItem = new ToolStripMenuItem("Galería de ejercicios...");
+            exerciseGalleryItem.Click += (s, e) => ShowExerciseGallery();
+            toolsMenu.DropDownItems.Add(exerciseGalleryItem);
 
             // Menú Configuración
             var configMenu = new ToolStripMenuItem("Config");
@@ -1345,6 +1354,42 @@ namespace GymRoutineGenerator.UI
                 MessageBox.Show($"Error abriendo gestor de imágenes: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void ShowExerciseGallery()
+        {
+            try
+            {
+                if (exerciseGalleryForm == null || exerciseGalleryForm.IsDisposed)
+                {
+                    exerciseGalleryForm = new ExerciseGalleryForm(GetManualLibraryService())
+                    {
+                        Owner = this
+                    };
+                    exerciseGalleryForm.FormClosed += (_, _) => exerciseGalleryForm = null;
+                    exerciseGalleryForm.Show(this);
+                }
+                else
+                {
+                    if (exerciseGalleryForm.WindowState == FormWindowState.Minimized)
+                    {
+                        exerciseGalleryForm.WindowState = FormWindowState.Normal;
+                    }
+
+                    exerciseGalleryForm.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudo abrir la galería de ejercicios. Revisa el log para más detalles.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Debug.WriteLine($"[MainForm] Error al abrir ExerciseGalleryForm: {ex}");
+            }
+        }
+
+        private ManualExerciseLibraryService GetManualLibraryService()
+        {
+            return manualExerciseLibraryService ??= new ManualExerciseLibraryService(exerciseSearchService);
         }
 
         private void ShowSettings()
