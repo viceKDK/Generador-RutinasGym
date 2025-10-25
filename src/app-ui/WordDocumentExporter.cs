@@ -202,6 +202,20 @@ namespace GymRoutineGenerator.UI
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
+        private static string NormalizeForComparison(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var t = RemoveDiacritics(text);
+            t = t.Replace("Ã¡", "a").Replace("Ã©", "e").Replace("Ã­", "i").Replace("Ã³", "o").Replace("Ãº", "u").Replace("Ã±", "n");
+            t = t.Replace("tÃ©cnica", "tecnica").Replace("tǸcnica", "tecnica");
+            var sb = new StringBuilder();
+            foreach (var ch in t)
+            {
+                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == ' ') sb.Append(ch);
+            }
+            return sb.ToString().ToLowerInvariant();
+        }
+
         private void ProcessContentForWord(StringBuilder html, string routineContent)
         {
             var lines = routineContent.Split('\n');
@@ -682,8 +696,9 @@ namespace GymRoutineGenerator.UI
                                 // Instrucciones
                                 if (!string.IsNullOrWhiteSpace(exercise.Instructions))
                                 {
-                                    var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
-                                    var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
+                                    var norm = NormalizeForComparison(exercise.Instructions);
+                                    var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta")
+                                        || (norm.Contains("tecnica") && norm.Contains("correct"));
                                     if (!isDefault)
                                     {
                                         body.Append(CreateParagraph($"  {exercise.Instructions}", false, true));

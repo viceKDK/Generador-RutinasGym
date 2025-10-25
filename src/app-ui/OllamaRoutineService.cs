@@ -253,7 +253,8 @@ namespace GymRoutineGenerator.UI
                 if (availableExercises.TryGetValue(muscle, out var exercises))
                 {
                     exerciseList.AppendLine($"=== {muscle.ToUpper()} ===");
-                    var list = shuffled ? exercises.OrderBy(_ => new Random().Next()) : exercises;
+                    var rand = new Random();
+                    var list = shuffled ? exercises.OrderBy(_ => rand.Next()).ToList() : exercises;
                     foreach (var ex in list.Take(10))
                     {
                         exerciseList.AppendLine($"- {ex.Name}");
@@ -358,9 +359,9 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                     stream = false,
                     options = new
                     {
-                        temperature = 0.7,  // Aumentado para mayor variaciÃ³n (0.3 -> 0.7)
-                        top_p = 0.9,        // Aumentado para mayor diversidad
-                        top_k = 40,         // Agregar top_k para mÃ¡s variaciÃ³n
+                        temperature = (alternative ? 0.9 : 0.7),
+                        top_p = (alternative ? 0.95 : 0.9),
+                        top_k = (alternative ? 80 : 40),         // Agregar top_k para mÃ¡s variaciÃ³n
                         num_predict = 3000,
                         seed = new Random().Next() // Seed aleatorio para evitar repeticiones
                     }
@@ -429,7 +430,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
                     string exerciseName = "";
                     string series = "";
-                    string instructions = "";
+                    string Instructions = string.Empty;
 
                     // Soportar mÃºltiples formatos:
                     // Formato 1: [EJERCICIO]Name [SERIES]... [INSTRUCCIONES]... (una o mÃºltiples lÃ­neas)
@@ -649,7 +650,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                                         {
                                             Name = availEx.Name,
                                             SetsAndReps = "3 x 10",  // Por defecto
-                                            Instructions = "Mantener tÃ©cnica correcta",
+                                            Instructions = string.Empty,
                                             ImageData = availEx.ImageData,
                                             ImagePath = availEx.ImagePath ?? ""
                                         });
@@ -781,5 +782,8 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
         public string Message { get; set; }
     }
 }
+
+
+
 
 

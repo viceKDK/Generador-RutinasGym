@@ -842,21 +842,7 @@ namespace GymRoutineGenerator.UI
                 {
                     sb.AppendLine($" {exercise.Name}");
                     sb.AppendLine($"    {exercise.SetsAndReps}");
-                    if (!string.IsNullOrWhiteSpace(exercise.Instructions))
-                    {
-                        var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
-                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
-                        if (!isDefault)
-                        {
-                            sb.AppendLine($"    {exercise.Instructions}");
-                        }
-                    }
-
-                    if (exercise.ImageData != null && exercise.ImageData.Length > 0)
-                    {
-                        sb.AppendLine($"    Imagen: Disponible");
-                    }
-
+                    // No mostrar instrucciones ni placeholders de imagen en texto simple
                     sb.AppendLine();
                 }
 
@@ -883,6 +869,21 @@ namespace GymRoutineGenerator.UI
                     sbClean.Append(c);
             }
             return sbClean.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string NormalizeForComparison(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var t = RemoveDiacritics(text);
+            // Fix common mojibake from UTF-8 -> Latin1 issues
+            t = t.Replace("Ã¡", "a").Replace("Ã©", "e").Replace("Ã­", "i").Replace("Ã³", "o").Replace("Ãº", "u").Replace("Ã±", "n");
+            t = t.Replace("tÃ©cnica", "tecnica").Replace("tǸcnica", "tecnica");
+            var sb = new StringBuilder();
+            foreach (var ch in t)
+            {
+                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == ' ') sb.Append(ch);
+            }
+            return sb.ToString().ToLowerInvariant();
         }
 
         private void PreviewButton_Click(object? sender, EventArgs e)
@@ -1304,7 +1305,8 @@ namespace GymRoutineGenerator.UI
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine($"Error insertando imagen: {ex.Message}");
-                            routineDisplayTextBox.AppendText($"    [Imagen de {exercise.Name} no disponible]\n");
+                            routineDisplayTextBox.AppendText($"    \n");
+                            // No mostrar placeholder de imagen
                         }
                     }
 
@@ -1313,15 +1315,7 @@ namespace GymRoutineGenerator.UI
                     routineDisplayTextBox.AppendText($"    {exercise.SetsAndReps}\n");
 
                     // Instrucciones (omitir si es la frase genérica)
-                    if (!string.IsNullOrWhiteSpace(exercise.Instructions))
-                    {
-                        var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
-                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
-                        if (!isDefault)
-                        {
-                            routineDisplayTextBox.AppendText($"    {exercise.Instructions}\n");
-                        }
-                    }
+                    // No mostrar instrucciones
 
                     routineDisplayTextBox.AppendText("\n");
                 }
@@ -1411,7 +1405,7 @@ namespace GymRoutineGenerator.UI
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine($"Error insertando imagen en preview: {ex.Message}");
-                            richTextBox.AppendText($"    [Imagen de {exercise.Name} no disponible]\n");
+                            richTextBox.AppendText($"    \n");
                         }
                     }
 
@@ -1420,10 +1414,11 @@ namespace GymRoutineGenerator.UI
                     richTextBox.AppendText($"    {exercise.SetsAndReps}\n");
 
                     // Instrucciones (omitir si es la frase genérica)
-                    if (!string.IsNullOrWhiteSpace(exercise.Instructions))
+                    if (false && !string.IsNullOrWhiteSpace(exercise.Instructions))
                     {
                         var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
-                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
+                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta")
+                            || (norm.Contains("tecnica") && norm.Contains("correct"));
                         if (!isDefault)
                         {
                             richTextBox.AppendText($"    {exercise.Instructions}\n");
@@ -1592,3 +1587,4 @@ namespace GymRoutineGenerator.UI
     }
 }
         
+
