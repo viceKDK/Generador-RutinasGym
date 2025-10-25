@@ -37,6 +37,8 @@ namespace GymRoutineGenerator.UI
         private RichTextBox routineDisplayTextBox;
         private ProgressBar progressBar;
         private Label statusLabel;
+        private Button dataSourceButton;
+        private Models.ManualExerciseDataSource generationDataSource = Models.ManualExerciseDataSource.Primary;
         private WordDocumentExporter exportService;
         private readonly SQLiteExerciseImageDatabase imageDatabase = new SQLiteExerciseImageDatabase();
         private List<WorkoutDay> lastGeneratedPlan = new List<WorkoutDay>();
@@ -283,13 +285,30 @@ namespace GymRoutineGenerator.UI
             };
             goalsCheckedListBox.Items.AddRange(new object[]
             {
-                "Ganar fuerza",
-                "Ganar masa muscular",
-                "Perder peso",
-                "Mejorar resistencia",
-                "Tonificar el cuerpo"
+                "Resistencia",
+                "Masa muscular",
+                "Fuerza",
+                "Baja de peso"
             });
-            goalsCheckedListBox.SetItemChecked(0, true); // Default: Ganar fuerza
+            goalsCheckedListBox.SetItemChecked(0, true);
+
+            // Botón fino y largo para seleccionar fuente de ejercicios
+            dataSourceButton = new Button
+            {
+                Text = "Fuente: BD principal (personalizada)",
+                Width = 360,
+                Height = 32,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(248, 249, 250)
+            };
+            dataSourceButton.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+            dataSourceButton.Click += (_, __) =>
+            {
+                generationDataSource = generationDataSource == Models.ManualExerciseDataSource.Primary
+                    ? Models.ManualExerciseDataSource.Secondary
+                    : Models.ManualExerciseDataSource.Primary;
+                UpdateDataSourceButtonText();
+            };
 
             // Action Buttons with modern styling
             generateButton = new ModernButton
@@ -319,7 +338,7 @@ namespace GymRoutineGenerator.UI
 
             previewButton = new ModernButton
             {
-                Text = "Vista previa",
+                Text = "Alternativa",
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 Size = new Size(200, 60),
                 NormalColor = Color.FromArgb(102, 16, 242),
@@ -328,7 +347,7 @@ namespace GymRoutineGenerator.UI
                 BorderRadius = 12,
                 Enabled = false
             };
-            previewButton.Click += PreviewButton_Click;
+            previewButton.Click += AlternativeButton_Click;
 
             exportToPDFButton = new ModernButton
             {
@@ -402,7 +421,7 @@ namespace GymRoutineGenerator.UI
 
             goalsCard.Controls.AddRange(new Control[]
             {
-                goalsCheckedListBox
+                goalsCheckedListBox, dataSourceButton
             });
 
             routineCard.Controls.AddRange(new Control[]
@@ -465,6 +484,10 @@ namespace GymRoutineGenerator.UI
             // Goals card
             goalsCard.Location = new Point(leftMargin, trainingCard.Bottom + cardSpacing);
             goalsCheckedListBox.Location = new Point(20, 60);
+            if (dataSourceButton != null)
+            {
+                dataSourceButton.Location = new Point(20, goalsCheckedListBox.Bottom + 10);
+            }
 
             // Buttons with improved layout
             int buttonsTop = goalsCard.Bottom + cardSpacing;
@@ -619,6 +642,7 @@ namespace GymRoutineGenerator.UI
                 progressBar.Style = ProgressBarStyle.Marquee;
 
                 var profile = BuildUserProfileFromForm();
+                exerciseSearchService.PreferredSource = generationDataSource;
 
                 // Verificar disponibilidad de Ollama
                 bool isOllamaAvailable = await ollamaService.IsOllamaAvailable();
@@ -644,7 +668,7 @@ namespace GymRoutineGenerator.UI
                 statusLabel.Text = "Generando rutina con IA (Mistral)... Esto puede tomar 1-2 minutos.";
                 Application.DoEvents();
 
-                var aiResponse = await ollamaService.GenerateRoutineWithAI(profile);
+                var aiResponse = await ollamaService.GenerateRoutineWithAI(profile, false);
 
                 if (aiResponse.Success && aiResponse.WorkoutDays != null && aiResponse.WorkoutDays.Count > 0)
                 {
@@ -725,6 +749,65 @@ namespace GymRoutineGenerator.UI
                 progressBar.Visible = false;
                 progressBar.Style = ProgressBarStyle.Blocks;
             }
+        }
+
+        private async void AlternativeButton_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Reutiliza las mismas validaciones que el botón Generar
+                if (fitnessLevelComboBox.SelectedIndex == -1 || string.IsNullOrWhiteSpace(fitnessLevelComboBox.Text))
+                {
+                    MessageBox.Show("Por favor selecciona tu nivel de fitness (Principiante, Intermedio o Avanzado).",
+                        "Nivel Requerido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    fitnessLevelComboBox.Focus();
+                    return;
+                }
+
+                previewButton.Enabled = false;
+                statusLabel.Text = "Generando alternativa...";
+                statusLabel.Visible = true;
+                progressBar.Visible = true;
+                progressBar.Style = ProgressBarStyle.Marquee;
+
+                var profile = BuildUserProfileFromForm();
+                exerciseSearchService.PreferredSource = generationDataSource;
+
+                if (!await ollamaService.IsOllamaAvailable())
+                {
+                    MessageBox.Show("Ollama no está disponible.", "IA No Disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var aiResponse = await ollamaService.GenerateRoutineWithAI(profile, true);
+                if (aiResponse.Success && aiResponse.WorkoutDays != null && aiResponse.WorkoutDays.Count > 0)
+                {
+                    lastGeneratedPlan = aiResponse.WorkoutDays;
+                    lastGeneratedProfile = profile;
+                    lastGeneratedRoutine = FormatRoutineForDisplay(profile, aiResponse.WorkoutDays);
+                    PopulateRichTextBoxWithImages(profile, aiResponse.WorkoutDays);
+                    statusLabel.Text = "Alternativa generada";
+                    exportButton.Enabled = true;
+                    previewButton.Enabled = true;
+                    exportToPDFButton.Enabled = true;
+                }
+                else
+                {
+                    statusLabel.Text = "No se pudo generar una alternativa";
+                }
+            }
+            finally
+            {
+                progressBar.Visible = false;
+            }
+        }
+
+        private void UpdateDataSourceButtonText()
+        {
+            if (dataSourceButton == null) return;
+            dataSourceButton.Text = generationDataSource == Models.ManualExerciseDataSource.Primary
+                ? "Fuente: BD principal (personalizada)"
+                : "Fuente: BD secundaria (general)";
         }
 
         private string FormatRoutineForDisplay(UserProfile profile, List<WorkoutDay> workoutDays)

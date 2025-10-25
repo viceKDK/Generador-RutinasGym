@@ -16,6 +16,7 @@ namespace GymRoutineGenerator.UI
     /// </summary>
     public class ExerciseImageSearchService
     {
+        public GymRoutineGenerator.UI.Models.ManualExerciseDataSource PreferredSource { get; set; } = GymRoutineGenerator.UI.Models.ManualExerciseDataSource.Primary;
         private readonly SQLiteExerciseImageDatabase _primaryDatabase;
         private readonly SecondaryExerciseDatabase _secondaryDatabase;
         private readonly AutomaticImageFinder _automaticFinder;
@@ -59,44 +60,52 @@ namespace GymRoutineGenerator.UI
             var results = new List<ExerciseWithImage>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var exercise in _primaryExercises)
+            // Primaria
+            if (PreferredSource != GymRoutineGenerator.UI.Models.ManualExerciseDataSource.Secondary)
             {
-                if (exercise.MuscleGroups.Any(group => AreSameMuscleGroup(group, canonical)))
+                foreach (var exercise in _primaryExercises)
                 {
-                    if (seen.Add(exercise.Name))
+                    if (exercise.MuscleGroups.Any(group => AreSameMuscleGroup(group, canonical)))
                     {
-                        results.Add(CloneExercise(exercise));
+                        if (seen.Add(exercise.Name))
+                        {
+                            results.Add(CloneExercise(exercise));
+                        }
                     }
                 }
             }
 
-            foreach (var term in GetMuscleGroupSearchTerms(canonical))
+            // Secundaria
+            if (PreferredSource != GymRoutineGenerator.UI.Models.ManualExerciseDataSource.Primary)
             {
-                var secondaryExercises = _secondaryDatabase.GetExercisesByMuscleGroup(term);
-                foreach (var info in secondaryExercises)
+                foreach (var term in GetMuscleGroupSearchTerms(canonical))
                 {
-                    var name = !string.IsNullOrWhiteSpace(info.Name) ? info.Name :
-                               !string.IsNullOrWhiteSpace(info.ExerciseName) ? info.ExerciseName :
-                               string.Empty;
-
-                    if (string.IsNullOrWhiteSpace(name) || !seen.Add(name))
+                    var secondaryExercises = _secondaryDatabase.GetExercisesByMuscleGroup(term);
+                    foreach (var info in secondaryExercises)
                     {
-                        continue;
+                        var name = !string.IsNullOrWhiteSpace(info.Name) ? info.Name :
+                                   !string.IsNullOrWhiteSpace(info.ExerciseName) ? info.ExerciseName :
+                                   string.Empty;
+
+                        if (string.IsNullOrWhiteSpace(name) || !seen.Add(name))
+                        {
+                            continue;
+                        }
+
+                        var metadata = FindMetadata(name);
+
+                        results.Add(new ExerciseWithImage
+                        {
+                            Name = metadata?.Name ?? name,
+                            EnglishName = metadata?.EnglishName ?? string.Empty,
+                            Description = metadata?.Description ?? info.Description ?? string.Empty,
+                            MuscleGroups = metadata?.MuscleGroups?.Length > 0 ? metadata.MuscleGroups : new[] { canonical },
+                            ImagePath = info.ImagePath ?? string.Empty,
+                            ImageData = info.ImageData,
+                            Source = info.Source ?? "BD Secundaria",
+                            Keywords = metadata?.Keywords ?? Array.Empty<string>()
+                        });
                     }
-
-                    var metadata = FindMetadata(name);
-
-                    results.Add(new ExerciseWithImage
-                    {
-                        Name = metadata?.Name ?? name,
-                        EnglishName = metadata?.EnglishName ?? string.Empty,
-                        Description = metadata?.Description ?? info.Description ?? string.Empty,
-                        MuscleGroups = metadata?.MuscleGroups?.Length > 0 ? metadata.MuscleGroups : new[] { canonical },
-                        ImagePath = info.ImagePath ?? string.Empty,
-                        ImageData = info.ImageData,
-                        Source = info.Source ?? "BD Secundaria",
-                        Keywords = metadata?.Keywords ?? Array.Empty<string>()
-                    });
                 }
             }
 
