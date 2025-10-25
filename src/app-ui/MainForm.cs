@@ -759,7 +759,15 @@ namespace GymRoutineGenerator.UI
                 {
                     sb.AppendLine($" {exercise.Name}");
                     sb.AppendLine($"    {exercise.SetsAndReps}");
-                    sb.AppendLine($"    {exercise.Instructions}");
+                    if (!string.IsNullOrWhiteSpace(exercise.Instructions))
+                    {
+                        var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
+                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
+                        if (!isDefault)
+                        {
+                            sb.AppendLine($"    {exercise.Instructions}");
+                        }
+                    }
 
                     if (exercise.ImageData != null && exercise.ImageData.Length > 0)
                     {
@@ -778,6 +786,20 @@ namespace GymRoutineGenerator.UI
             sb.AppendLine("".PadRight(50, ' '));
 
             return sb.ToString();
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            var normalized = text.Normalize(NormalizationForm.FormD);
+            var sbClean = new StringBuilder();
+            foreach (var c in normalized)
+            {
+                var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sbClean.Append(c);
+            }
+            return sbClean.ToString().Normalize(NormalizationForm.FormC);
         }
 
         private void PreviewButton_Click(object? sender, EventArgs e)
@@ -1207,10 +1229,15 @@ namespace GymRoutineGenerator.UI
                     routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 9);
                     routineDisplayTextBox.AppendText($"    {exercise.SetsAndReps}\n");
 
-                    // Instrucciones
+                    // Instrucciones (omitir si es la frase genérica)
                     if (!string.IsNullOrWhiteSpace(exercise.Instructions))
                     {
-                        routineDisplayTextBox.AppendText($"    {exercise.Instructions}\n");
+                        var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
+                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
+                        if (!isDefault)
+                        {
+                            routineDisplayTextBox.AppendText($"    {exercise.Instructions}\n");
+                        }
                     }
 
                     routineDisplayTextBox.AppendText("\n");
@@ -1309,10 +1336,15 @@ namespace GymRoutineGenerator.UI
                     richTextBox.SelectionFont = new Font("Segoe UI", 9);
                     richTextBox.AppendText($"    {exercise.SetsAndReps}\n");
 
-                    // Instrucciones
+                    // Instrucciones (omitir si es la frase genérica)
                     if (!string.IsNullOrWhiteSpace(exercise.Instructions))
                     {
-                        richTextBox.AppendText($"    {exercise.Instructions}\n");
+                        var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
+                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta");
+                        if (!isDefault)
+                        {
+                            richTextBox.AppendText($"    {exercise.Instructions}\n");
+                        }
                     }
 
                     richTextBox.AppendText("\n");
