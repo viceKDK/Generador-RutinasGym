@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -9,43 +10,50 @@ namespace GymRoutineGenerator.UI
 {
     public partial class ImprovedExerciseImageManagerForm : Form
     {
+        private static readonly Size ThumbnailSize = new Size(36, 36);
+
         private readonly SQLiteExerciseImageDatabase _imageDatabase;
-        private ListBox exerciseListBox = null!;
-        private TextBox searchTextBox;
-        private PictureBox imagePreview;
-        private TextBox exerciseNameTextBox;
-        private Label exerciseDescriptionLabel;
-
-        // Controles avanzados (ocultos por defecto)
-        private Panel advancedPanel;
-        private CheckedListBox muscleGroupsCheckedListBox;
-        private TextBox muscleGroupSearchBox;
-        private TextBox keywordsTextBox;
-        private ModernButton toggleAdvancedButton;
-
-        private ModernButton selectImageButton;
-        private ModernButton saveButton;
-        private ModernButton deleteButton;
-        private ModernButton addNewExerciseButton;
-        private ModernButton goToMainButton;
-        private Label statusLabel;
-        private Label dropZoneLabel;
-
-        private List<ExerciseImageInfo> _allExercises = new List<ExerciseImageInfo>();
-        private bool _advancedPanelExpanded = false;
-
-        // Lista completa de grupos musculares
-        private readonly string[] _allMuscleGroups = new[]
+        private readonly ExerciseMetadataStore _metadataStore;
+        private readonly string[] _defaultMuscleGroups =
         {
-            "Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps", "Antebrazos",
-            "Abdominales", "Oblicuos", "Core", "Cuádriceps", "Isquiotibiales",
-            "Glúteos", "Gemelos", "Pantorrillas", "Aductores", "Abductores",
-            "Trapecio", "Dorsales", "Lumbares", "Cuello", "Cardio"
+            "Pecho", "Espalda", "Hombros", "Biceps", "Triceps",
+            "Antebrazos", "Abdominales", "Core", "Cuadriceps", "Isquiotibiales",
+            "Gluteos", "Gemelos", "Aductores", "Abductores", "Trapecio",
+            "Dorsales", "Lumbar", "Cuello", "Cardio"
         };
+
+        private readonly Image _placeholderImage;
+
+        private ListView exerciseListView = null!;
+        private ImageList exerciseImageList = null!;
+        private TextBox searchTextBox = null!;
+        private ComboBox muscleFilterComboBox = null!;
+        private TextBox exerciseNameTextBox = null!;
+        private CheckedListBox muscleGroupsCheckedListBox = null!;
+        private Panel musclesContentPanel = null!;
+        private Panel descriptionContentPanel = null!;
+        private Button musclesToggleButton = null!;
+        private Button descriptionToggleButton = null!;
+        private TextBox editDescriptionTextBox = null!;
+        private Button importImageButton = null!;
+        private Button openImageButton = null!;
+        private Button openFolderButton = null!;
+        private Button addNewExerciseButton = null!;
+        private Button saveButton = null!;
+        private Button deleteButton = null!;
+        private ToolStripStatusLabel statusMessageLabel = null!;
+
+        private List<ExerciseImageInfo> _allExercises = new();
+        private ExerciseImageInfo? _currentExercise;
+        private bool _isLoadingEditor;
+        private bool _isDirty;
+        private string? _exportedTempImage;
 
         public ImprovedExerciseImageManagerForm()
         {
             _imageDatabase = new SQLiteExerciseImageDatabase();
+            _metadataStore = new ExerciseMetadataStore(AppDomain.CurrentDomain.BaseDirectory);
+            _placeholderImage = CreatePlaceholderThumbnail();
             InitializeComponent();
             LoadExercises();
         }
@@ -54,811 +62,997 @@ namespace GymRoutineGenerator.UI
         {
             if (disposing)
             {
-                // Liberar imagen antes de cerrar
-                if (imagePreview?.Image != null)
+                if (_exportedTempImage != null && File.Exists(_exportedTempImage))
                 {
-                    imagePreview.Image.Dispose();
-                    imagePreview.Image = null;
+                    try
+                    {
+                        File.Delete(_exportedTempImage);
+                    }
+                    catch
+                    {
+                        // ignore cleanup errors
+                    }
                 }
             }
+
             base.Dispose(disposing);
         }
 
         private void InitializeComponent()
         {
-            this.Text = "Gestor de Imagenes de Ejercicios";
-            this.Size = new Size(1400, 900);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.MinimumSize = new Size(1200, 800);
-            this.WindowState = FormWindowState.Maximized;
-            this.BackColor = Color.FromArgb(248, 249, 250);
+            Text = "Gestor de Ejercicios e Imágenes";
+            Size = new Size(1400, 860);
+            MinimumSize = new Size(1200, 760);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(245, 246, 250);
+            Font = new Font("Segoe UI", 10F);
 
-            // Panel izquierdo - Lista de ejercicios
-            var leftPanel = CreateLeftPanel();
-
-            // Panel central - Vista previa con Drag & Drop
-            var centerPanel = CreateCenterPanelWithDragDrop();
-
-            // Panel derecho - Detalles (simple por defecto)
-            var rightPanel = CreateRightPanel();
-
-            // Status bar
-            var statusBar = new Panel
+            var mainSplit = new SplitContainer
             {
-                Dock = DockStyle.Bottom,
-                Height = 30,
-                BackColor = Color.FromArgb(233, 236, 239)
-            };
-
-            statusLabel = new Label
-            {
-                Text = "Listo para agregar ejercicios",
                 Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 9F),
-                ForeColor = Color.FromArgb(73, 80, 87),
-                Padding = new Padding(10, 0, 0, 0)
-            };
-            statusBar.Controls.Add(statusLabel);
-
-            this.Controls.Add(centerPanel);
-            this.Controls.Add(rightPanel);
-            this.Controls.Add(leftPanel);
-            this.Controls.Add(statusBar);
-        }
-
-        private Panel CreateLeftPanel()
-        {
-            var leftPanel = new Panel
-            {
-                Dock = DockStyle.Left,
-                Width = 300,
-                BackColor = Color.White,
-                Padding = new Padding(10)
+                Orientation = Orientation.Vertical,
+                SplitterWidth = 6
             };
 
-            var exercisesLabel = new Label
+            mainSplit.Panel1.Controls.Add(BuildLeftPanel());
+            mainSplit.Panel2.Controls.Add(BuildRightPanel());
+
+            var statusStrip = new StatusStrip { SizingGrip = false };
+            statusMessageLabel = new ToolStripStatusLabel
             {
-                Text = "Ejercicios Disponibles",
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
-                Dock = DockStyle.Top,
-                Height = 30,
+                Spring = true,
+                Text = "Listo para agregar ejercicios",
                 TextAlign = ContentAlignment.MiddleLeft
             };
+            statusStrip.Items.Add(statusMessageLabel);
 
-            // Search box
-            var searchPanel = new Panel
+            Controls.Add(mainSplit);
+            Controls.Add(statusStrip);
+
+            Load += (_, _) =>
             {
-                Dock = DockStyle.Top,
-                Height = 40,
+                if (mainSplit.Width > 0)
+                {
+                    mainSplit.SplitterDistance = mainSplit.Width / 2;
+                }
+            };
+
+            mainSplit.SizeChanged += (_, _) =>
+            {
+                if (mainSplit.Width > 0)
+                {
+                    mainSplit.SplitterDistance = Math.Max(mainSplit.Width / 2, 320);
+                }
+            };
+        }
+
+        private Control BuildLeftPanel()
+        {
+            exerciseImageList = new ImageList
+            {
+                ColorDepth = ColorDepth.Depth32Bit,
+                ImageSize = ThumbnailSize
+            };
+
+            var panel = new Panel
+            {
+                Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                Padding = new Padding(0, 4, 0, 8)
+                Padding = new Padding(18)
+            };
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 4
+            };
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            var titleLabel = new Label
+            {
+                Text = "Ejercicios guardados",
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 37, 41),
+                AutoSize = true,
+                Dock = DockStyle.Top
+            };
+
+            var filtersPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                AutoSize = true,
+                WrapContents = false,
+                Margin = new Padding(0, 12, 0, 12)
             };
 
             searchTextBox = new TextBox
             {
-                Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 9F),
-                BorderStyle = BorderStyle.FixedSingle
+                Width = 240,
+                PlaceholderText = "Buscar..."
             };
-            searchTextBox.PlaceholderText = "Buscar ejercicio...";
-            searchTextBox.TextChanged += (s, e) => ApplyExerciseFilter(searchTextBox.Text);
-            searchPanel.Controls.Add(searchTextBox);
+            searchTextBox.TextChanged += (_, _) => ApplyFilters();
 
-            exerciseListBox = new ListBox
+            muscleFilterComboBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 180
+            };
+            muscleFilterComboBox.SelectedIndexChanged += (_, _) => ApplyFilters();
+
+            filtersPanel.Controls.Add(searchTextBox);
+            filtersPanel.Controls.Add(new Label
+            {
+                Text = "Grupo:",
+                AutoSize = true,
+                Margin = new Padding(12, 5, 6, 0)
+            });
+            filtersPanel.Controls.Add(muscleFilterComboBox);
+
+            exerciseListView = new ListView
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 10F),
-                BorderStyle = BorderStyle.None,
-                BackColor = Color.FromArgb(248, 249, 250),
-                SelectionMode = SelectionMode.One
-            };
-            exerciseListBox.SelectedIndexChanged += ExerciseListBox_SelectedIndexChanged;
-
-            addNewExerciseButton = new ModernButton
-            {
-                Text = "Agregar Ejercicio",
-                Dock = DockStyle.Bottom,
-                Height = 40,
-                NormalColor = Color.FromArgb(40, 167, 69),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
-            };
-            addNewExerciseButton.Click += AddNewExerciseButton_Click;
-
-            goToMainButton = new ModernButton
-            {
-                Text = "Ir a Ventana Principal",
-                Dock = DockStyle.Bottom,
-                Height = 40,
-                NormalColor = Color.FromArgb(108, 117, 125),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
-            };
-            goToMainButton.Click += GoToMainButton_Click;
-
-            leftPanel.Controls.Add(exerciseListBox);
-            leftPanel.Controls.Add(searchPanel);
-            leftPanel.Controls.Add(exercisesLabel);
-            leftPanel.Controls.Add(addNewExerciseButton);
-            leftPanel.Controls.Add(goToMainButton);
-
-            return leftPanel;
-        }
-
-        private Panel CreateCenterPanelWithDragDrop()
-        {
-            var centerPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                Padding = new Padding(40, 50, 40, 50)
-            };
-
-            var imageLabel = new Label
-            {
-                Text = "Vista Previa de Imagen",
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
-                Dock = DockStyle.Top,
-                Height = 30,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-
-            // Drop zone label (aparece cuando no hay imagen)
-            dropZoneLabel = new Label
-            {
-                Text = "Arrastra una imagen aqui\n\no\n\nClick en 'Seleccionar Imagen'",
-                Font = new Font("Segoe UI", 14F, FontStyle.Regular),
-                ForeColor = Color.FromArgb(108, 117, 125),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(248, 249, 250),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-
-            imagePreview = new PictureBox
-            {
-                Dock = DockStyle.Fill,
-                SizeMode = PictureBoxSizeMode.Zoom,
+                View = View.Details,
+                FullRowSelect = true,
+                HideSelection = false,
+                MultiSelect = false,
                 BorderStyle = BorderStyle.FixedSingle,
-                BackColor = Color.FromArgb(248, 249, 250),
-                Visible = false // Oculto por defecto, mostrar dropZoneLabel
+                HeaderStyle = ColumnHeaderStyle.None,
+                SmallImageList = exerciseImageList
             };
+            exerciseListView.Columns.Add(string.Empty, 260);
+            exerciseListView.SelectedIndexChanged += ExerciseListView_SelectedIndexChanged;
 
-            // Habilitar Drag & Drop en imagePreview
-            imagePreview.AllowDrop = true;
-            imagePreview.DragEnter += ImagePreview_DragEnter;
-            imagePreview.DragDrop += ImagePreview_DragDrop;
-
-            // También en dropZoneLabel
-            dropZoneLabel.AllowDrop = true;
-            dropZoneLabel.DragEnter += ImagePreview_DragEnter;
-            dropZoneLabel.DragDrop += ImagePreview_DragDrop;
-
-            var imageButtonsPanel = new Panel
+            var buttonsPanel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Bottom,
-                Height = 50,
-                BackColor = Color.Transparent
-            };
-
-            selectImageButton = new ModernButton
-            {
-                Text = "Seleccionar Imagen",
                 Dock = DockStyle.Fill,
-                Height = 40,
-                NormalColor = Color.FromArgb(13, 110, 253),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold)
-            };
-            selectImageButton.Click += SelectImageButton_Click;
-
-            imageButtonsPanel.Controls.Add(selectImageButton);
-
-            centerPanel.Controls.Add(imagePreview);
-            centerPanel.Controls.Add(dropZoneLabel);
-            centerPanel.Controls.Add(imageLabel);
-            centerPanel.Controls.Add(imageButtonsPanel);
-
-            return centerPanel;
-        }
-
-        private Panel CreateRightPanel()
-        {
-            var rightPanel = new Panel
-            {
-                Dock = DockStyle.Right,
-                Width = 350,
-                BackColor = Color.White,
-                Padding = new Padding(10),
-                AutoScroll = true
+                FlowDirection = FlowDirection.LeftToRight,
+                AutoSize = true,
+                Padding = new Padding(0, 10, 0, 0)
             };
 
-            var detailsLabel = new Label
-            {
-                Text = "Detalles del Ejercicio",
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
-                Dock = DockStyle.Top,
-                Height = 30,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
+            addNewExerciseButton = CreatePrimaryButton("Agregar ejercicio", (_, _) => CreateNewExercise());
+            importImageButton = CreateSecondaryButton("Importar imagen…", (_, _) => ImportImageFromDisk());
+            openImageButton = CreateSecondaryButton("Abrir imagen", (_, _) => OpenCurrentImage());
+            openFolderButton = CreateSecondaryButton("Abrir carpeta", (_, _) => OpenImageFolder());
 
-            var nameLabel = new Label
-            {
-                Text = "Nombre del ejercicio:",
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Dock = DockStyle.Top,
-                Height = 20,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
+            importImageButton.Enabled = false;
+            openImageButton.Enabled = false;
+            openFolderButton.Enabled = false;
 
-            exerciseNameTextBox = new TextBox
-            {
-                Font = new Font("Segoe UI", 11F),
-                Dock = DockStyle.Top,
-                Height = 32,
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            buttonsPanel.Controls.Add(addNewExerciseButton);
+            buttonsPanel.Controls.Add(importImageButton);
+            buttonsPanel.Controls.Add(openImageButton);
+            buttonsPanel.Controls.Add(openFolderButton);
 
-            exerciseDescriptionLabel = new Label
-            {
-                Text = "",
-                Font = new Font("Segoe UI", 9F),
-                ForeColor = Color.FromArgb(108, 117, 125),
-                Dock = DockStyle.Top,
-                Height = 40,
-                TextAlign = ContentAlignment.TopLeft,
-                AutoSize = false
-            };
+            layout.Controls.Add(titleLabel, 0, 0);
+            layout.Controls.Add(filtersPanel, 0, 1);
+            layout.Controls.Add(exerciseListView, 0, 2);
+            layout.Controls.Add(buttonsPanel, 0, 3);
 
-            var spacer1 = new Panel { Dock = DockStyle.Top, Height = 10, BackColor = Color.Transparent };
-
-            // Botón para mostrar/ocultar info avanzada
-            toggleAdvancedButton = new ModernButton
-            {
-                Text = "Mostrar Info Avanzada (Grupos Musculares, Keywords)",
-                Dock = DockStyle.Top,
-                Height = 40,
-                NormalColor = Color.FromArgb(108, 117, 125),
-                HoverColor = Color.FromArgb(90, 100, 110),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
-            };
-            toggleAdvancedButton.Click += ToggleAdvancedButton_Click;
-
-            var spacer2 = new Panel { Dock = DockStyle.Top, Height = 10, BackColor = Color.Transparent };
-
-            // Panel avanzado (oculto por defecto)
-            advancedPanel = CreateAdvancedPanel();
-            advancedPanel.Visible = false;
-
-            // Botones de acción
-            var actionsPanel = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 100,
-                BackColor = Color.Transparent
-            };
-
-            saveButton = new ModernButton
-            {
-                Text = "Guardar Cambios",
-                Dock = DockStyle.Top,
-                Height = 40,
-                NormalColor = Color.FromArgb(40, 167, 69),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                Margin = new Padding(0, 5, 0, 5)
-            };
-            saveButton.Click += SaveButton_Click;
-
-            deleteButton = new ModernButton
-            {
-                Text = "Eliminar Ejercicio",
-                Dock = DockStyle.Top,
-                Height = 40,
-                NormalColor = Color.FromArgb(220, 53, 69),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                Margin = new Padding(0, 5, 0, 0)
-            };
-            deleteButton.Click += DeleteButton_Click;
-
-            actionsPanel.Controls.Add(deleteButton);
-            actionsPanel.Controls.Add(saveButton);
-
-            rightPanel.Controls.Add(advancedPanel);
-            rightPanel.Controls.Add(spacer2);
-            rightPanel.Controls.Add(toggleAdvancedButton);
-            rightPanel.Controls.Add(spacer1);
-            rightPanel.Controls.Add(exerciseDescriptionLabel);
-            rightPanel.Controls.Add(exerciseNameTextBox);
-            rightPanel.Controls.Add(nameLabel);
-            rightPanel.Controls.Add(detailsLabel);
-            rightPanel.Controls.Add(actionsPanel);
-
-            return rightPanel;
-        }
-
-        private Panel CreateAdvancedPanel()
-        {
-            var panel = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 400,
-                BackColor = Color.FromArgb(248, 249, 250),
-                Padding = new Padding(5),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-
-            // Grupos musculares con multiselect
-            var muscleGroupsLabel = new Label
-            {
-                Text = "Grupos Musculares:",
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Dock = DockStyle.Top,
-                Height = 25,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-
-            // Búsqueda de grupos musculares
-            muscleGroupSearchBox = new TextBox
-            {
-                Dock = DockStyle.Top,
-                Height = 25,
-                Font = new Font("Segoe UI", 9F),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            muscleGroupSearchBox.PlaceholderText = "Buscar grupo muscular...";
-            muscleGroupSearchBox.TextChanged += MuscleGroupSearchBox_TextChanged;
-
-            muscleGroupsCheckedListBox = new CheckedListBox
-            {
-                Dock = DockStyle.Top,
-                Height = 180,
-                Font = new Font("Segoe UI", 9F),
-                BorderStyle = BorderStyle.FixedSingle,
-                CheckOnClick = true
-            };
-
-            // Agregar todos los grupos musculares
-            foreach (var group in _allMuscleGroups)
-            {
-                muscleGroupsCheckedListBox.Items.Add(group);
-            }
-
-            var spacer = new Panel { Dock = DockStyle.Top, Height = 10, BackColor = Color.Transparent };
-
-            // Keywords
-            var keywordsLabel = new Label
-            {
-                Text = "Palabras Clave (separadas por comas):",
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Dock = DockStyle.Top,
-                Height = 25,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-
-            keywordsTextBox = new TextBox
-            {
-                Dock = DockStyle.Top,
-                Height = 80,
-                Font = new Font("Segoe UI", 9F),
-                BorderStyle = BorderStyle.FixedSingle,
-                Multiline = true,
-                ScrollBars = ScrollBars.Vertical
-            };
-
-            panel.Controls.Add(keywordsTextBox);
-            panel.Controls.Add(keywordsLabel);
-            panel.Controls.Add(spacer);
-            panel.Controls.Add(muscleGroupsCheckedListBox);
-            panel.Controls.Add(muscleGroupSearchBox);
-            panel.Controls.Add(muscleGroupsLabel);
-
+            panel.Controls.Add(layout);
             return panel;
         }
 
-        #region Event Handlers
-
-        private void ToggleAdvancedButton_Click(object sender, EventArgs e)
+        private Control BuildRightPanel()
         {
-            _advancedPanelExpanded = !_advancedPanelExpanded;
-            advancedPanel.Visible = _advancedPanelExpanded;
-
-            if (_advancedPanelExpanded)
+            var panel = new Panel
             {
-                toggleAdvancedButton.Text = "Ocultar Info Avanzada";
-                toggleAdvancedButton.NormalColor = Color.FromArgb(13, 110, 253);
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(18)
+            };
+
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 6
+            };
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            var titleLabel = new Label
+            {
+                Text = "Editar ejercicio",
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 37, 41),
+                AutoSize = true
+            };
+
+            layout.Controls.Add(titleLabel, 0, 0);
+
+            layout.Controls.Add(CreateFieldLabel("Nombre"), 0, 1);
+            exerciseNameTextBox = CreateEditorTextBox();
+            exerciseNameTextBox.TextChanged += (_, _) => MarkDirty();
+            layout.Controls.Add(exerciseNameTextBox, 0, 2);
+
+            var quickActions = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.LeftToRight,
+                AutoSize = true,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 12, 0, 12)
+            };
+
+            saveButton = CreatePrimaryButton("Guardar cambios", (_, _) => SaveCurrentExercise());
+            deleteButton = CreateSecondaryButton("Eliminar", (_, _) => DeleteCurrentExercise());
+            var discardButton = CreateSecondaryButton("Descartar", (_, _) => ResetEditor());
+
+            quickActions.Controls.Add(saveButton);
+            quickActions.Controls.Add(discardButton);
+            quickActions.Controls.Add(deleteButton);
+
+            layout.Controls.Add(quickActions, 0, 3);
+
+            var musclesSection = BuildCollapsibleSection("Grupos musculares", out musclesToggleButton, out musclesContentPanel);
+            muscleGroupsCheckedListBox = new CheckedListBox
+            {
+                Dock = DockStyle.Fill,
+                CheckOnClick = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                Height = 280
+            };
+            PopulateMuscleChecklist(muscleGroupsCheckedListBox);
+            muscleGroupsCheckedListBox.ItemCheck += (_, _) =>
+            {
+                if (_isLoadingEditor)
+                {
+                    return;
+                }
+
+                if (IsHandleCreated)
+                {
+                    BeginInvoke(new Action(MarkDirty));
+                }
+                else
+                {
+                    MarkDirty();
+                }
+            };
+            musclesContentPanel.Controls.Add(muscleGroupsCheckedListBox);
+            layout.Controls.Add(musclesSection, 0, 4);
+
+            var descriptionSection = BuildCollapsibleSection("Descripción", out descriptionToggleButton, out descriptionContentPanel);
+            editDescriptionTextBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                Height = 100,
+                ScrollBars = ScrollBars.Vertical
+            };
+            editDescriptionTextBox.TextChanged += (_, _) => MarkDirty();
+            descriptionContentPanel.Controls.Add(editDescriptionTextBox);
+            layout.Controls.Add(descriptionSection, 0, 5);
+
+            panel.Controls.Add(layout);
+            return panel;
+        }
+
+        private Control BuildCollapsibleSection(string title, out Button toggleButton, out Panel contentPanel)
+        {
+            var container = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2
+            };
+            container.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            container.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            var button = new Button
+            {
+                TextAlign = ContentAlignment.MiddleLeft,
+                Text = $"{title} ▾",
+                AutoSize = true,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(233, 236, 239),
+                ForeColor = Color.FromArgb(52, 58, 64),
+                Padding = new Padding(8, 4, 8, 4)
+            };
+            button.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+
+            var panel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(8),
+                BackColor = Color.FromArgb(248, 249, 250)
+            };
+
+            button.Click += (_, _) => ToggleSection(button, panel);
+
+            container.Controls.Add(button, 0, 0);
+            container.Controls.Add(panel, 0, 1);
+
+            toggleButton = button;
+            contentPanel = panel;
+            return container;
+        }
+
+        private void ToggleSection(Button button, Panel panel)
+        {
+            panel.Visible = !panel.Visible;
+            button.Text = panel.Visible
+                ? button.Text.Replace("▸", "▾")
+                : button.Text.Replace("▾", "▸");
+        }
+
+        private TextBox CreateEditorTextBox()
+        {
+            return new TextBox
+            {
+                Dock = DockStyle.Fill,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+        }
+
+        private Button CreatePrimaryButton(string text, EventHandler handler)
+        {
+            var button = new Button
+            {
+                Text = text,
+                AutoSize = true,
+                Padding = new Padding(12, 6, 12, 6),
+                BackColor = Color.FromArgb(0, 123, 255),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(0, 0, 6, 0)
+            };
+            button.FlatAppearance.BorderSize = 0;
+            button.Click += handler;
+            return button;
+        }
+
+        private Button CreateSecondaryButton(string text, EventHandler handler)
+        {
+            var button = new Button
+            {
+                Text = text,
+                AutoSize = true,
+                Padding = new Padding(12, 6, 12, 6),
+                BackColor = Color.FromArgb(233, 236, 239),
+                ForeColor = Color.FromArgb(52, 58, 64),
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(6, 0, 0, 0)
+            };
+            button.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+            button.Click += handler;
+            return button;
+        }
+
+        private Label CreateFieldLabel(string text)
+        {
+            return new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Margin = new Padding(0, 8, 0, 4),
+                ForeColor = Color.FromArgb(73, 80, 87)
+            };
+        }
+
+        private void LoadExercises(string? preserveSelection = null)
+        {
+            var remembered = preserveSelection ?? _currentExercise?.ExerciseName;
+            _allExercises = _imageDatabase.GetAllExercises();
+            MergeMetadata();
+            RefreshMuscleFilter();
+            ApplyFilters(remembered);
+        }
+
+        private void MergeMetadata()
+        {
+            foreach (var exercise in _allExercises)
+            {
+                var metadata = _metadataStore.Get(exercise.ExerciseName);
+                if (metadata == null)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(metadata.Description))
+                {
+                    exercise.Description = metadata.Description;
+                }
+
+                if (metadata.MuscleGroups is { Length: > 0 })
+                {
+                    exercise.MuscleGroups = metadata.MuscleGroups;
+                }
+            }
+        }
+
+        private void RefreshMuscleFilter()
+        {
+            var previous = muscleFilterComboBox.SelectedItem as string;
+
+            var groups = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var group in _defaultMuscleGroups)
+            {
+                groups.Add(group);
+            }
+
+            foreach (var exercise in _allExercises)
+            {
+                if (exercise.MuscleGroups == null)
+                {
+                    continue;
+                }
+
+                foreach (var muscle in exercise.MuscleGroups)
+                {
+                    if (!string.IsNullOrWhiteSpace(muscle))
+                    {
+                        groups.Add(muscle.Trim());
+                    }
+                }
+            }
+
+            muscleFilterComboBox.BeginUpdate();
+            muscleFilterComboBox.Items.Clear();
+            muscleFilterComboBox.Items.Add("Todos");
+            foreach (var group in groups)
+            {
+                muscleFilterComboBox.Items.Add(group);
+            }
+            muscleFilterComboBox.EndUpdate();
+
+            if (!string.IsNullOrWhiteSpace(previous) && muscleFilterComboBox.Items.Contains(previous))
+            {
+                muscleFilterComboBox.SelectedItem = previous;
             }
             else
             {
-                toggleAdvancedButton.Text = "Mostrar Info Avanzada (Grupos Musculares, Keywords)";
-                toggleAdvancedButton.NormalColor = Color.FromArgb(108, 117, 125);
+                muscleFilterComboBox.SelectedIndex = 0;
             }
         }
 
-        private void MuscleGroupSearchBox_TextChanged(object sender, EventArgs e)
+        private void ApplyFilters(string? preserveSelection = null)
         {
-            var searchText = muscleGroupSearchBox.Text.ToLower();
+            var selectedGroup = muscleFilterComboBox.SelectedItem as string;
+            var queryText = searchTextBox.Text.Trim();
 
-            muscleGroupsCheckedListBox.Items.Clear();
+            IEnumerable<ExerciseImageInfo> query = _allExercises;
 
-            foreach (var group in _allMuscleGroups)
+            if (!string.IsNullOrWhiteSpace(selectedGroup) && !string.Equals(selectedGroup, "Todos", StringComparison.OrdinalIgnoreCase))
             {
-                if (string.IsNullOrWhiteSpace(searchText) || group.ToLower().Contains(searchText))
+                query = query.Where(ex =>
+                    ex.MuscleGroups != null &&
+                    ex.MuscleGroups.Any(m => m.Equals(selectedGroup, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(queryText))
+            {
+                var lowered = queryText.ToLowerInvariant();
+                query = query.Where(ex =>
+                    (!string.IsNullOrWhiteSpace(ex.ExerciseName) && ex.ExerciseName.ToLowerInvariant().Contains(lowered)) ||
+                    (ex.MuscleGroups != null && ex.MuscleGroups.Any(m => m.ToLowerInvariant().Contains(lowered))));
+            }
+
+            var filtered = query
+                .OrderBy(ex => ex.ExerciseName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            UpdateExerciseList(filtered, preserveSelection);
+            UpdateStatus(filtered.Count == 1 ? "1 ejercicio encontrado" : $"{filtered.Count} ejercicios encontrados");
+        }
+
+        private void UpdateExerciseList(IReadOnlyList<ExerciseImageInfo> exercises, string? preserveSelection)
+        {
+            exerciseListView.BeginUpdate();
+            exerciseListView.Items.Clear();
+            exerciseImageList.Images.Clear();
+
+            for (int i = 0; i < exercises.Count; i++)
+            {
+                var exercise = exercises[i];
+                var thumbnail = LoadListThumbnail(exercise) ?? (Image)_placeholderImage.Clone();
+                exerciseImageList.Images.Add(thumbnail);
+
+                var item = new ListViewItem(exercise.ExerciseName, i)
                 {
-                    muscleGroupsCheckedListBox.Items.Add(group);
-                }
+                    Tag = exercise
+                };
+                exerciseListView.Items.Add(item);
             }
-        }
 
-        private void ImagePreview_DragEnter(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            exerciseListView.EndUpdate();
+
+            if (exerciseListView.Items.Count == 0)
             {
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                var file = files[0];
-                var ext = Path.GetExtension(file).ToLower();
-
-                if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".bmp" || ext == ".gif" || ext == ".webp")
-                {
-                    e.Effect = DragDropEffects.Copy;
-                }
-                else
-                {
-                    e.Effect = DragDropEffects.None;
-                }
-            }
-        }
-
-        private void ImagePreview_DragDrop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                var file = files[0];
-
-                ImportImage(file);
-            }
-        }
-
-        private void SelectImageButton_Click(object sender, EventArgs e)
-        {
-            using (var openFileDialog = new OpenFileDialog())
-            {
-                openFileDialog.Title = "Seleccionar imagen del ejercicio";
-                openFileDialog.Filter = "Archivos de imagen|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp|Todos los archivos|*.*";
-                openFileDialog.FilterIndex = 1;
-
-                if (openFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    ImportImage(openFileDialog.FileName);
-                }
-            }
-        }
-
-        private void ImportImage(string imagePath)
-        {
-            if (!(exerciseListBox.SelectedItem is ExerciseListItem selectedItem))
-            {
-                MessageBox.Show("Por favor selecciona un ejercicio primero", "Advertencia",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowExerciseDetails(null);
                 return;
             }
 
-            try
+            if (!string.IsNullOrWhiteSpace(preserveSelection))
             {
-                var exerciseName = selectedItem.ExerciseInfo.ExerciseName;
-
-                _imageDatabase.ImportImageForExercise(exerciseName, imagePath);
-
-                // Recargar ejercicio actualizado de BD
-                var updatedExercise = _imageDatabase.FindExerciseImage(exerciseName);
-
-                if (updatedExercise != null)
+                foreach (ListViewItem item in exerciseListView.Items)
                 {
-                    if (updatedExercise.ImageData != null && updatedExercise.ImageData.Length > 0)
+                    if (string.Equals(((ExerciseImageInfo)item.Tag).ExerciseName, preserveSelection, StringComparison.OrdinalIgnoreCase))
                     {
-                        // Cargar imagen de forma segura desde bytes
-                        LoadImageSafely(updatedExercise.ImageData);
-
-                        // Actualizar el item en memoria
-                        selectedItem.ExerciseInfo.ImageData = updatedExercise.ImageData;
+                        item.Selected = true;
+                        item.EnsureVisible();
+                        return;
                     }
                 }
-
-                // Recargar lista manteniendo seleccion
-                var selectedIndex = exerciseListBox.SelectedIndex;
-                LoadExercises();
-
-                // Restaurar seleccion si es posible
-                if (selectedIndex >= 0 && selectedIndex < exerciseListBox.Items.Count)
-                {
-                    exerciseListBox.SelectedIndex = selectedIndex;
-                }
-
-                UpdateStatus($"Imagen importada exitosamente para '{exerciseName}'");
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error importando imagen: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                UpdateStatus($"Error: {ex.Message}");
-            }
+
+            exerciseListView.Items[0].Selected = true;
         }
 
-        private void SaveButton_Click(object sender, EventArgs e)
+        private void ExerciseListView_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            if (!(exerciseListBox.SelectedItem is ExerciseListItem selectedItem))
+            if (_isLoadingEditor)
+            {
                 return;
-
-            try
-            {
-                var newName = SanitizeLettersSpaces(exerciseNameTextBox.Text);
-
-                // Obtener keywords
-                var keywords = keywordsTextBox.Text
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(k => SanitizeLettersSpaces(k))
-                    .Where(k => !string.IsNullOrWhiteSpace(k))
-                    .ToArray();
-
-                // Obtener grupos musculares seleccionados
-                var muscleGroups = muscleGroupsCheckedListBox.CheckedItems
-                    .Cast<string>()
-                    .ToArray();
-
-                var oldName = selectedItem.ExerciseInfo.ExerciseName;
-
-                if (!string.Equals(newName, oldName, StringComparison.Ordinal))
-                {
-                    _imageDatabase.AddOrUpdateExercise(
-                        newName,
-                        selectedItem.ExerciseInfo.ImagePath,
-                        keywords,
-                        muscleGroups,
-                        "");
-                    _imageDatabase.RemoveExercise(oldName);
-                    selectedItem.ExerciseInfo.ExerciseName = newName;
-                }
-                else
-                {
-                    _imageDatabase.AddOrUpdateExercise(
-                        newName,
-                        selectedItem.ExerciseInfo.ImagePath,
-                        keywords,
-                        muscleGroups,
-                        "");
-                }
-
-                UpdateStatus("Cambios guardados exitosamente");
-                LoadExercises();
             }
-            catch (Exception ex)
+
+            var selectedExercise = exerciseListView.SelectedItems.Cast<ListViewItem>()
+                .Select(item => item.Tag as ExerciseImageInfo)
+                .FirstOrDefault();
+
+            if (selectedExercise == null)
             {
-                MessageBox.Show($"Error guardando cambios: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                UpdateStatus($"Error: {ex.Message}");
+                ShowExerciseDetails(null);
+                UpdateDirtyState(false);
+                return;
             }
+
+            if (_isDirty && _currentExercise != null &&
+                !string.Equals(_currentExercise.ExerciseName, selectedExercise.ExerciseName, StringComparison.OrdinalIgnoreCase))
+            {
+                var confirm = MessageBox.Show(
+                    "Hay cambios sin guardar. ¿Deseas descartarlos?",
+                    "Cambios sin guardar",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (confirm == DialogResult.No)
+                {
+                    _isLoadingEditor = true;
+                    foreach (ListViewItem item in exerciseListView.Items)
+                    {
+                        if (string.Equals(((ExerciseImageInfo)item.Tag).ExerciseName,
+                            _currentExercise.ExerciseName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            item.Selected = true;
+                            item.EnsureVisible();
+                            break;
+                        }
+                    }
+                    _isLoadingEditor = false;
+                    return;
+                }
+            }
+
+            ShowExerciseDetails(selectedExercise);
+            LoadExerciseIntoEditor(selectedExercise);
+            UpdateDirtyState(false);
         }
 
-        private void DeleteButton_Click(object sender, EventArgs e)
+        private void ShowExerciseDetails(ExerciseImageInfo? exercise)
         {
-            if (!(exerciseListBox.SelectedItem is ExerciseListItem selectedItem))
-                return;
+            _currentExercise = exercise;
 
-            var result = MessageBox.Show(
-                $"Estas seguro que deseas eliminar '{selectedItem.ExerciseInfo.ExerciseName}'?",
-                "Confirmar eliminacion",
+            if (exercise == null)
+            {
+                exerciseNameTextBox.Text = string.Empty;
+                editDescriptionTextBox.Text = string.Empty;
+                for (int i = 0; i < muscleGroupsCheckedListBox.Items.Count; i++)
+                {
+                    muscleGroupsCheckedListBox.SetItemChecked(i, false);
+                }
+                ToggleActionButtons(false);
+                return;
+            }
+
+            exerciseNameTextBox.Text = exercise.ExerciseName;
+            editDescriptionTextBox.Text = exercise.Description ?? string.Empty;
+
+            _isLoadingEditor = true;
+            for (int i = 0; i < muscleGroupsCheckedListBox.Items.Count; i++)
+            {
+                var muscle = muscleGroupsCheckedListBox.Items[i]?.ToString() ?? string.Empty;
+                var isChecked = exercise.MuscleGroups != null &&
+                                exercise.MuscleGroups.Any(m => m.Equals(muscle, StringComparison.OrdinalIgnoreCase));
+                muscleGroupsCheckedListBox.SetItemChecked(i, isChecked);
+            }
+            _isLoadingEditor = false;
+
+            ToggleActionButtons(true);
+        }
+
+        private void LoadExerciseIntoEditor(ExerciseImageInfo exercise)
+        {
+            _isLoadingEditor = true;
+
+            exerciseNameTextBox.Text = exercise.ExerciseName;
+            editDescriptionTextBox.Text = exercise.Description ?? string.Empty;
+
+            for (int i = 0; i < muscleGroupsCheckedListBox.Items.Count; i++)
+            {
+                var muscle = muscleGroupsCheckedListBox.Items[i]?.ToString() ?? string.Empty;
+                var isChecked = exercise.MuscleGroups != null &&
+                                exercise.MuscleGroups.Any(m => m.Equals(muscle, StringComparison.OrdinalIgnoreCase));
+                muscleGroupsCheckedListBox.SetItemChecked(i, isChecked);
+            }
+
+            _isLoadingEditor = false;
+        }
+
+        private void ToggleActionButtons(bool enabled)
+        {
+            importImageButton.Enabled = enabled;
+            openImageButton.Enabled = enabled;
+            openFolderButton.Enabled = enabled;
+            saveButton.Enabled = enabled && _currentExercise != null;
+            deleteButton.Enabled = enabled && _currentExercise != null;
+        }
+
+        private void MarkDirty()
+        {
+            if (_isLoadingEditor)
+            {
+                return;
+            }
+
+            UpdateDirtyState(true);
+        }
+
+        private void UpdateDirtyState(bool dirty)
+        {
+            _isDirty = dirty;
+            saveButton.Enabled = dirty && _currentExercise != null;
+        }
+
+        private void SaveCurrentExercise()
+        {
+            if (_currentExercise == null)
+            {
+                return;
+            }
+
+            var newName = exerciseNameTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                MessageBox.Show("El nombre del ejercicio es obligatorio.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                exerciseNameTextBox.Focus();
+                return;
+            }
+
+            var description = editDescriptionTextBox.Text.Trim();
+
+            var muscles = muscleGroupsCheckedListBox.CheckedItems
+                .Cast<string>()
+                .Select(m => m.Trim())
+                .Where(m => m.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (muscles.Length == 0)
+            {
+                var confirm = MessageBox.Show(
+                    "No se seleccionó ningún grupo muscular. ¿Deseas continuar?",
+                    "Confirmar",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.No)
+                {
+                    return;
+                }
+            }
+
+            var success = _imageDatabase.UpdateExerciseDetails(
+                _currentExercise.ExerciseName,
+                newName,
+                description,
+                muscles,
+                Array.Empty<string>(),
+                string.Empty);
+
+            if (!success)
+            {
+                MessageBox.Show("No se pudieron guardar los cambios. Revisa el log para más detalles.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            _metadataStore.Upsert(new ExerciseMetadataRecord
+            {
+                Name = newName,
+                Description = description,
+                MuscleGroups = muscles,
+                Keywords = Array.Empty<string>(),
+                Source = string.Empty
+            }, _currentExercise.ExerciseName);
+
+            UpdateStatus("Cambios guardados correctamente.");
+            LoadExercises(newName);
+            UpdateDirtyState(false);
+        }
+
+        private void ResetEditor()
+        {
+            if (_currentExercise == null)
+            {
+                return;
+            }
+
+            LoadExerciseIntoEditor(_currentExercise);
+            UpdateDirtyState(false);
+            UpdateStatus("Cambios descartados.");
+        }
+
+        private void DeleteCurrentExercise()
+        {
+            if (_currentExercise == null)
+            {
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"¿Seguro que deseas eliminar '{_currentExercise.ExerciseName}'?",
+                "Eliminar ejercicio",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
-            if (result == DialogResult.Yes)
+            if (confirm != DialogResult.Yes)
             {
-                try
-                {
-                    _imageDatabase.RemoveExercise(selectedItem.ExerciseInfo.ExerciseName);
-                    UpdateStatus($"Ejercicio '{selectedItem.ExerciseInfo.ExerciseName}' eliminado");
-                    LoadExercises();
-                    ClearExerciseDetails();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error eliminando ejercicio: {ex.Message}", "Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                return;
             }
-        }
 
-        private void AddNewExerciseButton_Click(object sender, EventArgs e)
-        {
-            var dialog = new AddExerciseDialog();
-            if (dialog.ShowDialog() == DialogResult.OK)
+            if (_imageDatabase.RemoveExercise(_currentExercise.ExerciseName))
             {
-                try
-                {
-                    _imageDatabase.AddOrUpdateExercise(dialog.ExerciseName, "", null, null, dialog.Description);
-                    UpdateStatus($"Ejercicio '{dialog.ExerciseName}' agregado");
-                    LoadExercises();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error agregando ejercicio: {ex.Message}", "Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-
-        private void GoToMainButton_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
-
-        private void ExerciseListBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (exerciseListBox.SelectedItem is ExerciseListItem selectedItem)
-            {
-                LoadExerciseDetails(selectedItem.ExerciseInfo);
-            }
-        }
-
-        #endregion
-
-        #region Helper Methods
-
-        private void LoadExercises()
-        {
-            _allExercises = _imageDatabase.GetAllExercises();
-            ApplyExerciseFilter(searchTextBox.Text);
-            exerciseListBox.Refresh();
-        }
-
-        private void ApplyExerciseFilter(string filter)
-        {
-            exerciseListBox.Items.Clear();
-
-            var filtered = string.IsNullOrWhiteSpace(filter)
-                ? _allExercises
-                : _allExercises.Where(e => e.ExerciseName.ToLower().Contains(filter.ToLower())).ToList();
-
-            foreach (var exercise in filtered.OrderBy(e => e.ExerciseName))
-            {
-                var hasImage = exercise.ImageData != null && exercise.ImageData.Length > 0;
-                var icon = hasImage ? "[OK]" : "";
-                var displayText = string.IsNullOrEmpty(icon) ? exercise.ExerciseName : $"{icon} {exercise.ExerciseName}";
-
-                exerciseListBox.Items.Add(new ExerciseListItem
-                {
-                    DisplayText = displayText,
-                    ExerciseInfo = exercise
-                });
-            }
-        }
-
-        private void LoadExerciseDetails(ExerciseImageInfo exercise)
-        {
-            exerciseNameTextBox.Text = exercise.ExerciseName;
-            exerciseDescriptionLabel.Text = string.IsNullOrWhiteSpace(exercise.Description)
-                ? "Sin descripcion"
-                : exercise.Description;
-
-            // Cargar imagen de forma segura desde bytes
-            if (exercise.ImageData != null && exercise.ImageData.Length > 0)
-            {
-                LoadImageSafely(exercise.ImageData);
+                _metadataStore.Delete(_currentExercise.ExerciseName);
+                UpdateStatus($"Ejercicio '{_currentExercise.ExerciseName}' eliminado.");
+                LoadExercises();
             }
             else
             {
-                dropZoneLabel.Visible = true;
-                imagePreview.Visible = false;
-                if (imagePreview.Image != null)
-                {
-                    imagePreview.Image.Dispose();
-                    imagePreview.Image = null;
-                }
-            }
-
-            // Cargar keywords
-            keywordsTextBox.Text = exercise.Keywords != null && exercise.Keywords.Length > 0
-                ? string.Join(", ", exercise.Keywords)
-                : "";
-
-            // Cargar grupos musculares (marcar los checkboxes correspondientes)
-            for (int i = 0; i < muscleGroupsCheckedListBox.Items.Count; i++)
-            {
-                var group = muscleGroupsCheckedListBox.Items[i].ToString();
-                var isChecked = exercise.MuscleGroups != null && exercise.MuscleGroups.Contains(group);
-                muscleGroupsCheckedListBox.SetItemChecked(i, isChecked);
+                MessageBox.Show("No se pudo eliminar el ejercicio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void ClearExerciseDetails()
+        private void CreateNewExercise()
         {
-            exerciseNameTextBox.Text = "";
-            exerciseDescriptionLabel.Text = "";
-            keywordsTextBox.Text = "";
-            dropZoneLabel.Visible = true;
-            imagePreview.Visible = false;
-
-            // Liberar imagen anterior
-            if (imagePreview.Image != null)
+            using var dialog = new AddExerciseDialog();
+            if (dialog.ShowDialog(this) != DialogResult.OK)
             {
-                imagePreview.Image.Dispose();
-                imagePreview.Image = null;
+                return;
             }
 
-            for (int i = 0; i < muscleGroupsCheckedListBox.Items.Count; i++)
+            if (string.IsNullOrWhiteSpace(dialog.ExerciseName))
             {
-                muscleGroupsCheckedListBox.SetItemChecked(i, false);
+                return;
+            }
+
+            var name = dialog.ExerciseName.Trim();
+
+            if (!_imageDatabase.AddOrUpdateExercise(name, string.Empty, dialog.Keywords, dialog.MuscleGroups, dialog.Description))
+            {
+                MessageBox.Show("No se pudo crear el ejercicio en la base de datos.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            _metadataStore.Upsert(new ExerciseMetadataRecord
+            {
+                Name = name,
+                Description = dialog.Description,
+                MuscleGroups = dialog.MuscleGroups,
+                Keywords = Array.Empty<string>(),
+                Source = string.Empty
+            });
+
+            UpdateStatus($"Ejercicio '{name}' creado. Ahora importa una imagen.");
+            LoadExercises(name);
+        }
+
+        private void ImportImageFromDisk()
+        {
+            if (_currentExercise == null)
+            {
+                return;
+            }
+
+            using var dialog = new OpenFileDialog
+            {
+                Title = "Seleccionar imagen del ejercicio",
+                Filter = "Archivos de imagen|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp|Todos los archivos|*.*",
+                FilterIndex = 1
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            if (_imageDatabase.ImportImageForExercise(_currentExercise.ExerciseName, dialog.FileName))
+            {
+                UpdateStatus("Imagen importada correctamente.");
+                LoadExercises(_currentExercise.ExerciseName);
+            }
+            else
+            {
+                MessageBox.Show("No se pudo importar la imagen. Verifica el archivo e inténtalo nuevamente.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void LoadImageSafely(byte[]? imageData)
+        private void OpenCurrentImage()
         {
+            if (_currentExercise == null)
+            {
+                return;
+            }
+
             try
             {
-                // Liberar imagen anterior primero
-                if (imagePreview.Image != null)
+                if (!string.IsNullOrWhiteSpace(_currentExercise.ImagePath) && File.Exists(_currentExercise.ImagePath))
                 {
-                    imagePreview.Image.Dispose();
-                    imagePreview.Image = null;
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = _currentExercise.ImagePath,
+                        UseShellExecute = true
+                    });
+                    return;
                 }
 
-                if (imageData != null && imageData.Length > 0)
+                if (_currentExercise.ImageData != null && _currentExercise.ImageData.Length > 0)
                 {
-                    // Cargar desde bytes - crear copia para que Image no dependa del stream
-                    using (var ms = new MemoryStream(imageData))
+                    _exportedTempImage = ExportImageToTemp(_currentExercise.ImageData, _currentExercise.ExerciseName);
+                    if (_exportedTempImage != null)
                     {
-                        var tempImage = Image.FromStream(ms);
-                        imagePreview.Image = new Bitmap(tempImage);
-                        tempImage.Dispose();
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = _exportedTempImage,
+                            UseShellExecute = true
+                        });
                     }
-
-                    dropZoneLabel.Visible = false;
-                    imagePreview.Visible = true;
-                    imagePreview.Refresh();
-                    imagePreview.Invalidate();
                 }
                 else
                 {
-                    dropZoneLabel.Visible = true;
-                    imagePreview.Visible = false;
+                    MessageBox.Show("No hay imagen disponible para este ejercicio.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-            }
-            catch (OutOfMemoryException)
-            {
-                dropZoneLabel.Visible = true;
-                imagePreview.Visible = false;
-                MessageBox.Show("La imagen es demasiado grande o esta corrupta. Intenta con una imagen mas pequeña.",
-                    "Error de memoria", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
-                dropZoneLabel.Visible = true;
-                imagePreview.Visible = false;
-                UpdateStatus($"Error cargando imagen: {ex.Message}");
+                MessageBox.Show($"No se pudo abrir la imagen: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void OpenImageFolder()
+        {
+            if (_currentExercise == null)
+            {
+                return;
+            }
+
+            var path = _currentExercise.ImagePath;
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                if (_currentExercise.ImageData != null && _currentExercise.ImageData.Length > 0)
+                {
+                    _exportedTempImage = ExportImageToTemp(_currentExercise.ImageData, _currentExercise.ExerciseName);
+                    path = _exportedTempImage;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                Process.Start("explorer.exe", $"/select,\"{path}\"");
+            }
+            else
+            {
+                MessageBox.Show("No se encontró el archivo de imagen o no está disponible.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private static string? ExportImageToTemp(byte[] imageData, string exerciseName)
+        {
+            try
+            {
+                var tempDir = Path.Combine(Path.GetTempPath(), "GymRoutineImages");
+                Directory.CreateDirectory(tempDir);
+
+                var safeName = string.Join("_", exerciseName.Split(Path.GetInvalidFileNameChars()));
+                var filePath = Path.Combine(tempDir, $"{safeName}_{Guid.NewGuid():N}.png");
+                File.WriteAllBytes(filePath, imageData);
+                return filePath;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ExerciseManager] Export temp error: {ex.Message}");
+                return null;
+            }
+        }
+
+        private Image? LoadListThumbnail(ExerciseImageInfo exercise)
+        {
+            try
+            {
+                if (exercise.ImageData != null && exercise.ImageData.Length > 0)
+                {
+                    using var ms = new MemoryStream(exercise.ImageData);
+                    using var original = Image.FromStream(ms);
+                    return ResizeThumbnail(original);
+                }
+
+                if (!string.IsNullOrWhiteSpace(exercise.ImagePath) && File.Exists(exercise.ImagePath))
+                {
+                    using var original = Image.FromFile(exercise.ImagePath);
+                    return ResizeThumbnail(original);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ExerciseManager] Thumbnail error: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        private static Image ResizeThumbnail(Image original)
+        {
+            var bitmap = new Bitmap(ThumbnailSize.Width, ThumbnailSize.Height);
+
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.Clear(Color.White);
+
+                var scale = Math.Min((double)ThumbnailSize.Width / original.Width, (double)ThumbnailSize.Height / original.Height);
+                var width = (int)(original.Width * scale);
+                var height = (int)(original.Height * scale);
+                var x = (ThumbnailSize.Width - width) / 2;
+                var y = (ThumbnailSize.Height - height) / 2;
+
+                g.DrawImage(original, new Rectangle(x, y, width, height));
+            }
+
+            return bitmap;
+        }
+
+        private void PopulateMuscleChecklist(CheckedListBox list)
+        {
+            list.BeginUpdate();
+            list.Items.Clear();
+            foreach (var muscle in _defaultMuscleGroups)
+            {
+                list.Items.Add(muscle);
+            }
+            list.EndUpdate();
         }
 
         private void UpdateStatus(string message)
         {
-            statusLabel.Text = message;
+            statusMessageLabel.Text = message;
         }
 
-        private string SanitizeLettersSpaces(string input)
+        private Image CreatePlaceholderThumbnail()
         {
-            if (string.IsNullOrWhiteSpace(input))
-                return string.Empty;
-
-            return new string(input.Where(c => char.IsLetter(c) || char.IsWhiteSpace(c) || c == '-').ToArray()).Trim();
-        }
-
-        #endregion
-
-        private class ExerciseListItem
-        {
-            public string DisplayText { get; set; }
-            public ExerciseImageInfo ExerciseInfo { get; set; }
-
-            public override string ToString() => DisplayText;
+            var bitmap = new Bitmap(ThumbnailSize.Width, ThumbnailSize.Height);
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                g.Clear(Color.WhiteSmoke);
+                using var pen = new Pen(Color.LightGray, 2);
+                g.DrawRectangle(pen, 4, 4, ThumbnailSize.Width - 8, ThumbnailSize.Height - 8);
+                using var font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                var text = "IMG";
+                var textSize = g.MeasureString(text, font);
+                g.DrawString(text, font, Brushes.Gray,
+                    new PointF((ThumbnailSize.Width - textSize.Width) / 2, (ThumbnailSize.Height - textSize.Height) / 2));
+            }
+            return bitmap;
         }
     }
 }

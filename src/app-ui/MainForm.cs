@@ -51,11 +51,9 @@ namespace GymRoutineGenerator.UI
         private MenuStrip menuStrip;
         private StatusStrip statusStrip;
         private ToolStripStatusLabel selectionStatusLabel;
-        private ToolStripMenuItem? copySelectionMenuItem;
 
         private readonly ExerciseImageSearchService exerciseSearchService = new();
         private ManualExerciseLibraryService? manualExerciseLibraryService;
-        private ExerciseGalleryForm? exerciseGalleryForm;
 
         public ManualExerciseSelectionStore ManualSelectionStore => manualSelectionStore;
 
@@ -79,8 +77,32 @@ namespace GymRoutineGenerator.UI
             // Ensure clean window title without emoji
             this.Text = "Generador de Rutinas de Gimnasio";
 
+            // Configurar agrupamiento en barra de tareas para la ventana principal
+            TaskbarGroupingHelper.ConfigureFormGrouping(this);
+
             // Add resize event for responsive design
             this.Resize += MainForm_Resize;
+
+            // Ensure proper cleanup on form close
+            this.FormClosing += MainForm_FormClosing;
+        }
+
+        private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // Cleanup resources
+            _host?.Dispose();
+
+            // Force application exit to ensure process terminates
+            Application.Exit();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _host?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         private void MainForm_Resize(object sender, EventArgs e)
@@ -498,20 +520,13 @@ namespace GymRoutineGenerator.UI
 
             // Menú Herramientas
             var toolsMenu = new ToolStripMenuItem("Herramientas");
-            var imagesManagerItem = new ToolStripMenuItem("Gestor de imágenes...");
+            var imagesManagerItem = new ToolStripMenuItem("Gestor de ejercicios...");
             imagesManagerItem.Click += (s, e) => ShowImageManager();
             toolsMenu.DropDownItems.Add(imagesManagerItem);
 
             var exerciseGalleryItem = new ToolStripMenuItem("Galería de ejercicios...");
             exerciseGalleryItem.Click += (s, e) => ShowExerciseGallery();
             toolsMenu.DropDownItems.Add(exerciseGalleryItem);
-
-            copySelectionMenuItem = new ToolStripMenuItem("Copiar selección manual al portapapeles")
-            {
-                Enabled = manualSelectionStore.CurrentSelection.Count > 0
-            };
-            copySelectionMenuItem.Click += (s, e) => CopyManualSelectionToClipboard();
-            toolsMenu.DropDownItems.Add(copySelectionMenuItem);
 
             // Menú Configuración
             var configMenu = new ToolStripMenuItem("Config");
@@ -897,6 +912,9 @@ namespace GymRoutineGenerator.UI
                 StartPosition = FormStartPosition.CenterParent,
                 BackColor = Color.White
             };
+
+            // Configurar agrupamiento en barra de tareas
+            TaskbarGroupingHelper.ConfigureFormGrouping(previewForm);
 
             var tabControl = new TabControl { Dock = DockStyle.Fill };
 
@@ -1366,52 +1384,6 @@ namespace GymRoutineGenerator.UI
             if (control is RichTextBox rtb) rtb.BorderStyle = BorderStyle.FixedSingle;
         }
 
-        // Simple handlers for menu actions
-        private void CopyManualSelectionToClipboard()
-        {
-            var selection = manualSelectionStore.CurrentSelection;
-            if (selection.Count == 0)
-            {
-                MessageBox.Show("No hay ejercicios en la selección manual.", "Selección manual", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var builder = new StringBuilder();
-            foreach (var entry in selection)
-            {
-                var lineBuilder = new StringBuilder(entry.DisplayName);
-
-                if (!string.IsNullOrWhiteSpace(entry.Source))
-                {
-                    lineBuilder.Append($" [{entry.Source}]");
-                }
-
-                if (!string.IsNullOrWhiteSpace(entry.ImagePath))
-                {
-                    lineBuilder.Append($" - {entry.ImagePath}");
-                }
-
-                if (entry.MuscleGroups.Count > 0)
-                {
-                    lineBuilder.Append($" (Grupos: {string.Join(", ", entry.MuscleGroups)})");
-                }
-
-                builder.AppendLine(lineBuilder.ToString());
-            }
-
-            try
-            {
-                Clipboard.SetText(builder.ToString().TrimEnd());
-                statusLabel.Text = $"Selección manual copiada ({selection.Count} ejercicios)";
-                statusLabel.Visible = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"No se pudo copiar al portapapeles: {ex.Message}", "Portapapeles", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Debug.WriteLine($"[MainForm] Error copiando selección manual: {ex}");
-            }
-        }
-
         private void ManualSelectionStore_SelectionChanged(object? sender, ManualExerciseSelectionChangedEventArgs e)
         {
             if (selectionStatusLabel == null || selectionStatusLabel.IsDisposed)
@@ -1445,19 +1417,14 @@ namespace GymRoutineGenerator.UI
                 _ => $"Selección manual: {count} ejercicios"
             };
 
-            if (copySelectionMenuItem != null)
-            {
-                copySelectionMenuItem.Enabled = count > 0;
-            }
         }
 
         private void ShowImageManager()
         {
             try
             {
-                var imageManagerForm = new ImprovedExerciseImageManagerForm();
-                imageManagerForm.Show();
-                imageManagerForm.BringToFront();
+                // Usar Singleton para evitar múltiples instancias
+                HybridExerciseManagerForm.ShowSingleton();
             }
             catch (Exception ex)
             {
@@ -1470,24 +1437,12 @@ namespace GymRoutineGenerator.UI
         {
             try
             {
-                if (exerciseGalleryForm == null || exerciseGalleryForm.IsDisposed)
-                {
-                    exerciseGalleryForm = new ExerciseGalleryForm(GetManualLibraryService(), manualSelectionStore)
-                    {
-                        Owner = this
-                    };
-                    exerciseGalleryForm.FormClosed += (_, _) => exerciseGalleryForm = null;
-                    exerciseGalleryForm.Show(this);
-                }
-                else
-                {
-                    if (exerciseGalleryForm.WindowState == FormWindowState.Minimized)
-                    {
-                        exerciseGalleryForm.WindowState = FormWindowState.Normal;
-                    }
+                // Abrir galería como ventana modal
+                using var galleryForm = new ExerciseGalleryForm(GetManualLibraryService(), manualSelectionStore);
 
-                    exerciseGalleryForm.Focus();
-                }
+                // No configurar agrupamiento para evitar doble icono en barra de tareas
+
+                galleryForm.ShowDialog(this);  // Modal - bloquea hasta que se cierre
             }
             catch (Exception ex)
             {
