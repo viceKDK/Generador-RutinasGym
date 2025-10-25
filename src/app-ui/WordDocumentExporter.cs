@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -186,6 +186,34 @@ namespace GymRoutineGenerator.UI
             html.AppendLine("</html>");
 
             return html.ToString();
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            var normalized = text.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder();
+            foreach (var c in normalized)
+            {
+                var cat = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (cat != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            return sb.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string NormalizeForComparison(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var t = RemoveDiacritics(text);
+            t = t.Replace("Ã¡", "a").Replace("Ã©", "e").Replace("Ã­", "i").Replace("Ã³", "o").Replace("Ãº", "u").Replace("Ã±", "n");
+            t = t.Replace("tÃ©cnica", "tecnica").Replace("tǸcnica", "tecnica");
+            var sb = new StringBuilder();
+            foreach (var ch in t)
+            {
+                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == ' ') sb.Append(ch);
+            }
+            return sb.ToString().ToLowerInvariant();
         }
 
         private void ProcessContentForWord(StringBuilder html, string routineContent)
@@ -513,8 +541,7 @@ namespace GymRoutineGenerator.UI
                 {
                     if (inExerciseSection) { html.AppendLine("</ol></div>"); inExerciseSection = false; }
 
-                    html.AppendLine("<div class='warning-section'>");
-                    html.AppendLine("<div class='exercise-title'> RECOMENDACIONES IMPORTANTES</div>");
+                    // Omitir secciones de advertencias/recomendaciones automÃ¡ticas
                     continue;
                 }
 
@@ -566,26 +593,26 @@ namespace GymRoutineGenerator.UI
             {
                 try
                 {
-                    // Validar parámetros
+                    // Validar parÃ¡metros
                     if (string.IsNullOrWhiteSpace(filePath))
                     {
-                        System.Diagnostics.Debug.WriteLine("Error: filePath es null o vacío");
+                        System.Diagnostics.Debug.WriteLine("Error: filePath es null o vacÃ­o");
                         return false;
                     }
 
                     if (workoutPlan == null || workoutPlan.Count == 0)
                     {
-                        System.Diagnostics.Debug.WriteLine("Error: workoutPlan es null o vacío");
+                        System.Diagnostics.Debug.WriteLine("Error: workoutPlan es null o vacÃ­o");
                         return false;
                     }
 
-                    // Cambiar extensión a .docx para formato OpenXml
+                    // Cambiar extensiÃ³n a .docx para formato OpenXml
                     var docxFilePath = Path.ChangeExtension(filePath, ".docx");
                     System.Diagnostics.Debug.WriteLine($"Exportando a: {docxFilePath}");
 
-                    // Crear buscador automático de imágenes
+                    // Crear buscador automÃ¡tico de imÃ¡genes
                     var imageFinder = new AutomaticImageFinder();
-                    System.Diagnostics.Debug.WriteLine($"AutomaticImageFinder creado. Imágenes en cache: {imageFinder.GetCachedImageCount()}");
+                    System.Diagnostics.Debug.WriteLine($"AutomaticImageFinder creado. ImÃ¡genes en cache: {imageFinder.GetCachedImageCount()}");
 
                     // Crear documento Word
                     using (WordprocessingDocument wordDoc = WordprocessingDocument.Create(docxFilePath, WordprocessingDocumentType.Document))
@@ -595,15 +622,15 @@ namespace GymRoutineGenerator.UI
                         mainPart.Document = new Document();
                         Body body = new Body();
 
-                        // Título principal
+                        // TÃ­tulo principal
                         body.Append(CreateHeading("RUTINA DE GIMNASIO PERSONALIZADA", 1));
                         body.Append(CreateParagraph(""));
 
-                        // Información del documento
+                        // InformaciÃ³n del documento
                         body.Append(CreateParagraph($"Generado el: {DateTime.Now:dd/MM/yyyy HH:mm}"));
                         body.Append(CreateParagraph(""));
 
-                        // Parsear información personal del routineContent
+                        // Parsear informaciÃ³n personal del routineContent
                         var lines = routineContent.Split('\n');
                         bool inPersonalInfo = false;
                         bool inObjectives = false;
@@ -612,9 +639,9 @@ namespace GymRoutineGenerator.UI
                         {
                             var trimmed = line.Trim();
 
-                            if (trimmed.Contains("INFORMACIÓN PERSONAL") || trimmed.Contains("INFORMACION PERSONAL"))
+                            if (trimmed.Contains("INFORMACIÃ“N PERSONAL") || trimmed.Contains("INFORMACION PERSONAL"))
                             {
-                                body.Append(CreateHeading("INFORMACIÓN PERSONAL", 2));
+                                body.Append(CreateHeading("INFORMACIÃ“N PERSONAL", 2));
                                 inPersonalInfo = true;
                                 inObjectives = false;
                                 continue;
@@ -636,12 +663,12 @@ namespace GymRoutineGenerator.UI
                                 break;
                             }
 
-                            if (inPersonalInfo && trimmed.Length > 0 && !trimmed.Contains("━") && !trimmed.Contains("═"))
+                            if (inPersonalInfo && trimmed.Length > 0 && !trimmed.Contains("â”") && !trimmed.Contains("â•"))
                             {
                                 body.Append(CreateParagraph(CleanEmojis(trimmed)));
                             }
 
-                            if (inObjectives && trimmed.Length > 0 && !trimmed.Contains("━") && !trimmed.Contains("═"))
+                            if (inObjectives && trimmed.Length > 0 && !trimmed.Contains("â”") && !trimmed.Contains("â•"))
                             {
                                 body.Append(CreateBulletPoint(CleanEmojis(trimmed)));
                             }
@@ -652,7 +679,7 @@ namespace GymRoutineGenerator.UI
                         body.Append(CreateHeading("RUTINA DE ENTRENAMIENTO", 2));
                         body.Append(CreateParagraph(""));
 
-                        // Agregar cada día de entrenamiento
+                        // Agregar cada dÃ­a de entrenamiento
                         foreach (var day in workoutPlan)
                         {
                             body.Append(CreateHeading(day.Name, 3));
@@ -669,10 +696,16 @@ namespace GymRoutineGenerator.UI
                                 // Instrucciones
                                 if (!string.IsNullOrWhiteSpace(exercise.Instructions))
                                 {
-                                    body.Append(CreateParagraph($"  {exercise.Instructions}", false, true));
+                                    var norm = NormalizeForComparison(exercise.Instructions);
+                                    var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta")
+                                        || (norm.Contains("tecnica") && norm.Contains("correct"));
+                                    if (!isDefault)
+                                    {
+                                        body.Append(CreateParagraph($"  {exercise.Instructions}", false, true));
+                                    }
                                 }
 
-                                // Buscar y agregar imagen automáticamente
+                                // Buscar y agregar imagen automÃ¡ticamente
                                 string? imagePath = null;
 
                                 System.Diagnostics.Debug.WriteLine($"Buscando imagen para: {exercise.Name}");
@@ -682,44 +715,44 @@ namespace GymRoutineGenerator.UI
                                 if (imageInfo != null && !string.IsNullOrWhiteSpace(imageInfo.ImagePath) && File.Exists(imageInfo.ImagePath))
                                 {
                                     imagePath = imageInfo.ImagePath;
-                                    System.Diagnostics.Debug.WriteLine($"  ✓ Imagen encontrada en BD: {imagePath}");
+                                    System.Diagnostics.Debug.WriteLine($"  âœ“ Imagen encontrada en BD: {imagePath}");
                                 }
                                 else
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"  ✗ No se encontró imagen en BD");
+                                    System.Diagnostics.Debug.WriteLine($"  âœ— No se encontrÃ³ imagen en BD");
                                 }
 
-                                // 2. Si no está en BD, buscar automáticamente en docs/ejercicios
+                                // 2. Si no estÃ¡ en BD, buscar automÃ¡ticamente en docs/ejercicios
                                 if (string.IsNullOrEmpty(imagePath))
                                 {
                                     imagePath = imageFinder.FindImageForExercise(exercise.Name);
                                     if (!string.IsNullOrEmpty(imagePath))
                                     {
-                                        System.Diagnostics.Debug.WriteLine($"  ✓ Imagen encontrada por AutomaticImageFinder: {imagePath}");
+                                        System.Diagnostics.Debug.WriteLine($"  âœ“ Imagen encontrada por AutomaticImageFinder: {imagePath}");
                                     }
                                     else
                                     {
-                                        System.Diagnostics.Debug.WriteLine($"  ✗ No se encontró imagen en sistema de archivos");
+                                        System.Diagnostics.Debug.WriteLine($"  âœ— No se encontrÃ³ imagen en sistema de archivos");
                                     }
                                 }
 
-                                // 3. Insertar imagen si se encontró
+                                // 3. Insertar imagen si se encontrÃ³
                                 if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
                                 {
                                     try
                                     {
                                         InsertImage(mainPart, body, imagePath, 400, 300);
-                                        System.Diagnostics.Debug.WriteLine($"  ✓ Imagen insertada exitosamente");
+                                        System.Diagnostics.Debug.WriteLine($"  âœ“ Imagen insertada exitosamente");
                                     }
                                     catch (Exception imgEx)
                                     {
                                         // Si falla la imagen, continuar sin ella
-                                        System.Diagnostics.Debug.WriteLine($"  ✗ Error al insertar imagen: {imgEx.Message}");
+                                        System.Diagnostics.Debug.WriteLine($"  âœ— Error al insertar imagen: {imgEx.Message}");
                                     }
                                 }
                                 else
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"  ⚠ No se insertó imagen para {exercise.Name}");
+                                    System.Diagnostics.Debug.WriteLine($"  âš  No se insertÃ³ imagen para {exercise.Name}");
                                 }
 
                                 body.Append(CreateParagraph(""));
@@ -727,20 +760,12 @@ namespace GymRoutineGenerator.UI
 
                             body.Append(CreateParagraph(""));
                         }
-
-                        // Recomendaciones importantes
-                        body.Append(CreateHeading("RECOMENDACIONES IMPORTANTES", 2));
-                        body.Append(CreateBulletPoint("Calienta adecuadamente antes de cada sesión (5-10 minutos)"));
-                        body.Append(CreateBulletPoint("Mantén una técnica correcta en cada ejercicio"));
-                        body.Append(CreateBulletPoint("Descansa 48-72 horas entre entrenamientos del mismo grupo muscular"));
-                        body.Append(CreateBulletPoint("Mantente hidratado durante el entrenamiento"));
-                        body.Append(CreateBulletPoint("Consulta a un profesional si tienes dudas sobre algún ejercicio"));
-
+                        // Omitido: recomendaciones automaticas
                         if (manualSelection != null && manualSelection.Count > 0)
                         {
                             body.Append(CreateParagraph(""));
-                            body.Append(CreateHeading("SELECCIÓN MANUAL DE EJERCICIOS", 2));
-                            body.Append(CreateParagraph("Ejercicios agregados desde la galería manual durante esta sesión:"));
+                            body.Append(CreateHeading("SELECCIÃ“N MANUAL DE EJERCICIOS", 2));
+                            body.Append(CreateParagraph("Ejercicios agregados desde la galerÃ­a manual durante esta sesiÃ³n:"));
                             body.Append(CreateParagraph(""));
 
                             for (var index = 0; index < manualSelection.Count; index++)
@@ -789,7 +814,7 @@ namespace GymRoutineGenerator.UI
             var run = new Run();
             var runProps = new RunProperties();
 
-            // Configurar tamaño según nivel
+            // Configurar tamaÃ±o segÃºn nivel
             int fontSize = level switch
             {
                 1 => 32, // 16pt
@@ -801,7 +826,7 @@ namespace GymRoutineGenerator.UI
             runProps.Append(new Bold());
             runProps.Append(new FontSize { Val = fontSize.ToString() });
 
-            // Color según nivel
+            // Color segÃºn nivel
             if (level == 1)
             {
                 runProps.Append(new WColor { Val = "1F7A54" }); // Verde
@@ -812,7 +837,7 @@ namespace GymRoutineGenerator.UI
             }
             else
             {
-                runProps.Append(new WColor { Val = "198754" }); // Verde más claro
+                runProps.Append(new WColor { Val = "198754" }); // Verde mÃ¡s claro
             }
 
             run.Append(runProps);
@@ -865,7 +890,7 @@ namespace GymRoutineGenerator.UI
 
         private void InsertImage(MainDocumentPart mainPart, Body body, string imagePath, int width, int height)
         {
-            // Determinar tipo de imagen por extensión y crear ImagePart apropiado
+            // Determinar tipo de imagen por extensiÃ³n y crear ImagePart apropiado
             var extension = Path.GetExtension(imagePath).ToLowerInvariant();
 
             ImagePart imagePart = extension switch
@@ -924,3 +949,6 @@ namespace GymRoutineGenerator.UI
         }
     }
 }
+
+
+

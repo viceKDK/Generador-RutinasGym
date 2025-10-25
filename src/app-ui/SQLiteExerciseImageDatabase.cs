@@ -3,30 +3,29 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace GymRoutineGenerator.UI
 {
     /// <summary>
-    /// Database handler for exercise images using SQLite
+    /// Database handler for exercise images using SQLite.
     /// </summary>
     public class SQLiteExerciseImageDatabase
     {
         private readonly string _connectionString;
+        private readonly HashSet<string> _exerciseColumns;
 
         public SQLiteExerciseImageDatabase()
         {
-            // Buscar la base de datos en múltiples ubicaciones posibles
             var dbPath = FindDatabasePath();
 
             if (string.IsNullOrEmpty(dbPath))
             {
-                // Si no se encuentra, usar una en el directorio base
-                dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "gymroutine.db");
-                dbPath = Path.GetFullPath(dbPath);
+                var fallback = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "gymroutine.db");
+                dbPath = Path.GetFullPath(fallback);
             }
 
             _connectionString = $"Data Source={dbPath};Version=3;";
+            _exerciseColumns = LoadExerciseColumns();
         }
 
         private string? FindDatabasePath()
@@ -34,7 +33,6 @@ namespace GymRoutineGenerator.UI
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
             var current = new DirectoryInfo(baseDir);
 
-            // Buscar hacia arriba hasta 10 niveles
             for (int i = 0; i < 10 && current != null; i++)
             {
                 var dbPath = Path.Combine(current.FullName, "gymroutine.db");
@@ -42,21 +40,57 @@ namespace GymRoutineGenerator.UI
                 {
                     return dbPath;
                 }
+
                 current = current.Parent;
             }
 
             return null;
         }
 
+        private HashSet<string> LoadExerciseColumns()
+        {
+            var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (var command = new SQLiteCommand("PRAGMA table_info(Exercises);", connection))
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var name = reader["name"]?.ToString();
+                            if (!string.IsNullOrWhiteSpace(name))
+                            {
+                                columns.Add(name);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] Column discovery failed: {ex.Message}");
+            }
+
+            return columns;
+        }
+
         public ExerciseImageInfo? FindExerciseImage(string exerciseName)
         {
+            if (string.IsNullOrWhiteSpace(exerciseName))
+            {
+                return null;
+            }
+
             try
             {
                 using (var connection = new SQLiteConnection(_connectionString))
                 {
                     connection.Open();
 
-                    // Buscar por nombre exacto en español o inglés, traer ImageData (BLOB)
                     var query = @"
                         SELECT e.Id, e.Name, e.SpanishName, ei.ImageData, ei.ImagePath, ei.Description
                         FROM Exercises e
@@ -76,17 +110,16 @@ namespace GymRoutineGenerator.UI
                             {
                                 var imageData = reader["ImageData"] as byte[];
                                 var imagePath = reader["ImagePath"]?.ToString();
-
                                 if (imageData != null || !string.IsNullOrWhiteSpace(imagePath))
                                 {
                                     return new ExerciseImageInfo
                                     {
                                         ExerciseName = exerciseName,
-                                        ImagePath = imagePath ?? "",
+                                        ImagePath = imagePath ?? string.Empty,
                                         ImageData = imageData,
-                                        Description = reader["Description"]?.ToString() ?? "",
-                                        Keywords = new string[0],
-                                        MuscleGroups = new string[0]
+                                        Description = reader["Description"]?.ToString() ?? string.Empty,
+                                        Keywords = Array.Empty<string>(),
+                                        MuscleGroups = Array.Empty<string>()
                                     };
                                 }
                             }
@@ -96,7 +129,7 @@ namespace GymRoutineGenerator.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error en FindExerciseImage: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] FindExerciseImage error: {ex.Message}");
             }
 
             return null;
@@ -109,8 +142,7 @@ namespace GymRoutineGenerator.UI
 
         public string? GetImagePath(string exerciseName)
         {
-            var imageInfo = FindExerciseImage(exerciseName);
-            return imageInfo?.ImagePath;
+            return FindExerciseImage(exerciseName)?.ImagePath;
         }
 
         public List<ExerciseImageInfo> GetAllExercises()
@@ -123,9 +155,21 @@ namespace GymRoutineGenerator.UI
                 {
                     connection.Open();
 
-                    var query = @"
+                    var optionalSelect = new List<string>();
+                    if (_exerciseColumns.Contains("Instructions"))
+                    {
+                        optionalSelect.Add("e.Instructions");
+                    }
+
+                    if (_exerciseColumns.Contains("Source"))
+                    {
+                        optionalSelect.Add("e.Source");
+                    }
+
+                    var query = $@"
                         SELECT e.Id, e.Name, e.SpanishName, e.Description, ei.ImageData, ei.ImagePath,
-                               mg.SpanishName as PrimaryMuscleGroup
+                               mg.SpanishName AS PrimaryMuscleGroup
+                               {(optionalSelect.Count > 0 ? ", " + string.Join(", ", optionalSelect) : string.Empty)}
                         FROM Exercises e
                         LEFT JOIN ExerciseImages ei ON e.Id = ei.ExerciseId
                         LEFT JOIN MuscleGroups mg ON e.PrimaryMuscleGroupId = mg.Id
@@ -137,14 +181,16 @@ namespace GymRoutineGenerator.UI
                     {
                         while (reader.Read())
                         {
-                            var spanishName = reader["SpanishName"]?.ToString() ?? reader["Name"]?.ToString() ?? "";
+                            var spanishName = reader["SpanishName"]?.ToString() ?? reader["Name"]?.ToString() ?? string.Empty;
                             var imagePath = reader["ImagePath"]?.ToString();
                             var imageData = reader["ImageData"] as byte[];
-                            var description = reader["Description"]?.ToString();
+                            var description = reader["Description"]?.ToString() ?? string.Empty;
                             var primaryMuscleGroup = reader["PrimaryMuscleGroup"]?.ToString();
+                            var instructions = SafeGetString(reader, "Instructions");
+                            var source = SafeGetString(reader, "Source");
 
                             var muscleGroups = new List<string>();
-                            if (!string.IsNullOrEmpty(primaryMuscleGroup))
+                            if (!string.IsNullOrWhiteSpace(primaryMuscleGroup))
                             {
                                 muscleGroups.Add(primaryMuscleGroup);
                             }
@@ -152,11 +198,17 @@ namespace GymRoutineGenerator.UI
                             exercises.Add(new ExerciseImageInfo
                             {
                                 ExerciseName = spanishName,
-                                ImagePath = imagePath ?? "",
+                                ImagePath = imagePath ?? string.Empty,
                                 ImageData = imageData,
-                                Description = description ?? "",
-                                Keywords = new string[0],
-                                MuscleGroups = muscleGroups.ToArray()
+                                Description = description,
+                                Keywords = string.IsNullOrWhiteSpace(instructions)
+                                    ? Array.Empty<string>()
+                                    : instructions.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                        .Select(k => k.Trim())
+                                        .Where(k => k.Length > 0)
+                                        .ToArray(),
+                                MuscleGroups = muscleGroups.ToArray(),
+                                Source = source ?? string.Empty
                             });
                         }
                     }
@@ -164,7 +216,7 @@ namespace GymRoutineGenerator.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error en GetAllExercises: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] GetAllExercises error: {ex.Message}");
             }
 
             return exercises;
@@ -176,11 +228,9 @@ namespace GymRoutineGenerator.UI
             {
                 if (!File.Exists(sourceImagePath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Archivo fuente no existe: {sourceImagePath}");
                     return false;
                 }
 
-                // Leer imagen como bytes
                 byte[] imageBytes;
                 using (var sourceStream = new FileStream(sourceImagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
@@ -188,83 +238,283 @@ namespace GymRoutineGenerator.UI
                     sourceStream.Read(imageBytes, 0, imageBytes.Length);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Imagen leida: {imageBytes.Length} bytes");
-
-                // Guardar en base de datos como BLOB
                 using (var connection = new SQLiteConnection(_connectionString))
                 {
                     connection.Open();
-
-                    // Buscar ID del ejercicio
-                    var exerciseId = GetExerciseId(connection, exerciseName);
-                    if (exerciseId == null)
+                    using (var transaction = connection.BeginTransaction())
                     {
-                        // Si no existe, crearlo
-                        System.Diagnostics.Debug.WriteLine($"Creando nuevo ejercicio: {exerciseName}");
-                        exerciseId = CreateExercise(connection, exerciseName);
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"Exercise ID: {exerciseId}");
-
-                    // Verificar si ya existe una imagen para este ejercicio
-                    var existingImageQuery = "SELECT COUNT(*) FROM ExerciseImages WHERE ExerciseId = @exerciseId";
-                    using (var checkCommand = new SQLiteCommand(existingImageQuery, connection))
-                    {
-                        checkCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
-                        var count = Convert.ToInt32(checkCommand.ExecuteScalar());
-
-                        if (count > 0)
+                        var exerciseId = GetExerciseId(connection, exerciseName);
+                        if (exerciseId == null)
                         {
-                            // Actualizar imagen existente (SOBRESCRIBIR)
-                            System.Diagnostics.Debug.WriteLine($"Sobrescribiendo imagen existente para ejercicio {exerciseId}");
-                            var updateQuery = "UPDATE ExerciseImages SET ImageData = @imageData, ImagePath = '' WHERE ExerciseId = @exerciseId";
-                            using (var updateCommand = new SQLiteCommand(updateQuery, connection))
+                            exerciseId = CreateExercise(connection, exerciseName);
+                        }
+
+                        var existingImageQuery = "SELECT COUNT(*) FROM ExerciseImages WHERE ExerciseId = @exerciseId";
+                        using (var checkCommand = new SQLiteCommand(existingImageQuery, connection, transaction))
+                        {
+                            checkCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
+                            var count = Convert.ToInt32(checkCommand.ExecuteScalar());
+
+                            if (count > 0)
                             {
-                                updateCommand.Parameters.AddWithValue("@imageData", imageBytes);
-                                updateCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
-                                var rows = updateCommand.ExecuteNonQuery();
-                                System.Diagnostics.Debug.WriteLine($"Filas actualizadas: {rows}");
+                                var updateQuery = "UPDATE ExerciseImages SET ImageData = @imageData, ImagePath = '' WHERE ExerciseId = @exerciseId";
+                                using (var updateCommand = new SQLiteCommand(updateQuery, connection, transaction))
+                                {
+                                    updateCommand.Parameters.AddWithValue("@imageData", imageBytes);
+                                    updateCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
+                                    updateCommand.ExecuteNonQuery();
+                                }
+                            }
+                            else
+                            {
+                                var insertQuery = @"
+                                    INSERT INTO ExerciseImages (ExerciseId, ImageData, ImagePath, ImagePosition, IsPrimary, Description)
+                                    VALUES (@exerciseId, @imageData, '', 'Front', 1, '')";
+
+                                using (var insertCommand = new SQLiteCommand(insertQuery, connection, transaction))
+                                {
+                                    insertCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
+                                    insertCommand.Parameters.AddWithValue("@imageData", imageBytes);
+                                    insertCommand.ExecuteNonQuery();
+                                }
                             }
                         }
-                        else
-                        {
-                            // Insertar nueva imagen como BLOB
-                            System.Diagnostics.Debug.WriteLine($"Insertando nueva imagen como BLOB para ejercicio {exerciseId}");
-                            var insertQuery = @"
-                                INSERT INTO ExerciseImages (ExerciseId, ImageData, ImagePath, ImagePosition, IsPrimary, Description)
-                                VALUES (@exerciseId, @imageData, '', 'Front', 1, '')";
 
-                            using (var insertCommand = new SQLiteCommand(insertQuery, connection))
-                            {
-                                insertCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
-                                insertCommand.Parameters.AddWithValue("@imageData", imageBytes);
-                                var rows = insertCommand.ExecuteNonQuery();
-                                System.Diagnostics.Debug.WriteLine($"Filas insertadas: {rows}");
-                            }
-                        }
+                        transaction.Commit();
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"✅ Imagen importada exitosamente para: {exerciseName}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error importando imagen: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] ImportImageForExercise error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool AddOrUpdateExercise(string exerciseName, string imagePath, string[]? keywords = null, string[]? muscleGroups = null, string description = "")
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                {
+                    return ImportImageForExercise(exerciseName, imagePath);
+                }
+
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+                    var exerciseId = GetExerciseId(connection, exerciseName);
+                    if (exerciseId == null)
+                    {
+                        CreateExercise(connection, exerciseName);
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] AddOrUpdateExercise error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool UpdateExerciseDetails(string originalName, string newName, string description, string[] muscleGroups, string[] keywords, string source)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        var exerciseId = GetExerciseId(connection, originalName) ?? GetExerciseId(connection, newName);
+                        if (exerciseId == null)
+                        {
+                            exerciseId = CreateExercise(connection, string.IsNullOrWhiteSpace(newName) ? originalName : newName);
+                        }
+
+                        var updateParts = new List<string>();
+                        var needsNameParameter = false;
+                        var needsDescriptionParameter = false;
+                        var needsInstructionsParameter = false;
+                        var needsSourceParameter = false;
+                        var needsPrimaryMuscleParameter = false;
+
+                        if (_exerciseColumns.Contains("Name"))
+                        {
+                            updateParts.Add("Name = @newName");
+                            needsNameParameter = true;
+                        }
+
+                        if (_exerciseColumns.Contains("SpanishName"))
+                        {
+                            updateParts.Add("SpanishName = @newName");
+                            needsNameParameter = true;
+                        }
+
+                        if (_exerciseColumns.Contains("Description"))
+                        {
+                            updateParts.Add("Description = @description");
+                            needsDescriptionParameter = true;
+                        }
+
+                        if (_exerciseColumns.Contains("Instructions"))
+                        {
+                            updateParts.Add("Instructions = @instructions");
+                            needsInstructionsParameter = true;
+                        }
+
+                        if (_exerciseColumns.Contains("Source"))
+                        {
+                            updateParts.Add("Source = @source");
+                            needsSourceParameter = true;
+                        }
+
+                        int? primaryMuscleId = null;
+                        if (_exerciseColumns.Contains("PrimaryMuscleGroupId") && muscleGroups != null && muscleGroups.Length > 0)
+                        {
+                            primaryMuscleId = ResolvePrimaryMuscleGroupId(connection, muscleGroups[0]);
+                            if (primaryMuscleId.HasValue)
+                            {
+                                updateParts.Add("PrimaryMuscleGroupId = @primaryMuscleGroupId");
+                                needsPrimaryMuscleParameter = true;
+                            }
+                        }
+
+                        if (updateParts.Count > 0)
+                        {
+                            var updateSql = $"UPDATE Exercises SET {string.Join(", ", updateParts)} WHERE Id = @id";
+                            using (var command = new SQLiteCommand(updateSql, connection, transaction))
+                            {
+                                command.Parameters.AddWithValue("@id", exerciseId.Value);
+
+                                if (needsNameParameter)
+                                {
+                                    command.Parameters.AddWithValue("@newName", newName);
+                                }
+
+                                if (needsDescriptionParameter)
+                                {
+                                    command.Parameters.AddWithValue("@description", description ?? string.Empty);
+                                }
+
+                                if (needsInstructionsParameter)
+                                {
+                                    var joined = keywords == null || keywords.Length == 0
+                                        ? string.Empty
+                                        : string.Join(",", keywords.Select(k => k.Trim()).Where(k => k.Length > 0));
+                                    command.Parameters.AddWithValue("@instructions", joined);
+                                }
+
+                                if (needsSourceParameter)
+                                {
+                                    command.Parameters.AddWithValue("@source", source ?? string.Empty);
+                                }
+
+                                if (needsPrimaryMuscleParameter && primaryMuscleId.HasValue)
+                                {
+                                    command.Parameters.AddWithValue("@primaryMuscleGroupId", primaryMuscleId.Value);
+                                }
+
+                                command.ExecuteNonQuery();
+                            }
+                        }
+
+                        transaction.Commit();
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] UpdateExerciseDetails error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool RemoveExercise(string exerciseName)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        var exerciseId = GetExerciseId(connection, exerciseName);
+                        if (exerciseId == null)
+                        {
+                            return false;
+                        }
+
+                        var deleteImagesQuery = "DELETE FROM ExerciseImages WHERE ExerciseId = @exerciseId";
+                        using (var deleteImagesCommand = new SQLiteCommand(deleteImagesQuery, connection, transaction))
+                        {
+                            deleteImagesCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
+                            deleteImagesCommand.ExecuteNonQuery();
+                        }
+
+                        if (_exerciseColumns.Contains("IsActive"))
+                        {
+                            var deactivateQuery = "UPDATE Exercises SET IsActive = 0 WHERE Id = @exerciseId";
+                            using (var deactivateCommand = new SQLiteCommand(deactivateQuery, connection, transaction))
+                            {
+                                deactivateCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
+                                deactivateCommand.ExecuteNonQuery();
+                            }
+                        }
+                        else
+                        {
+                            var deleteExerciseQuery = "DELETE FROM Exercises WHERE Id = @exerciseId";
+                            using (var deleteExerciseCommand = new SQLiteCommand(deleteExerciseQuery, connection, transaction))
+                            {
+                                deleteExerciseCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
+                                deleteExerciseCommand.ExecuteNonQuery();
+                            }
+                        }
+
+                        transaction.Commit();
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] RemoveExercise error: {ex.Message}");
                 return false;
             }
         }
 
         private int? GetExerciseId(SQLiteConnection connection, string exerciseName)
         {
+            if (string.IsNullOrWhiteSpace(exerciseName))
+            {
+                return null;
+            }
+
             var query = "SELECT Id FROM Exercises WHERE Name = @name OR SpanishName = @name LIMIT 1";
             using (var command = new SQLiteCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@name", exerciseName);
                 var result = command.ExecuteScalar();
-                return result != null ? Convert.ToInt32(result) : null;
+                if (result == null)
+                {
+                    return null;
+                }
+
+                if (int.TryParse(result.ToString(), out var id))
+                {
+                    return id;
+                }
             }
+
+            return null;
         }
 
         private int CreateExercise(SQLiteConnection connection, string exerciseName)
@@ -285,96 +535,47 @@ namespace GymRoutineGenerator.UI
             }
         }
 
-        private string NormalizeFileName(string name)
+        private int? ResolvePrimaryMuscleGroupId(SQLiteConnection connection, string? muscleGroupName)
         {
-            // Reemplazar caracteres inválidos
-            var invalidChars = Path.GetInvalidFileNameChars();
-            var normalized = name;
-
-            foreach (var c in invalidChars)
+            if (string.IsNullOrWhiteSpace(muscleGroupName))
             {
-                normalized = normalized.Replace(c, '_');
+                return null;
             }
 
-            return normalized.Replace(" ", "_").ToLowerInvariant();
+            var query = "SELECT Id FROM MuscleGroups WHERE SpanishName = @name OR Name = @name ORDER BY Id LIMIT 1";
+            using (var command = new SQLiteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@name", muscleGroupName.Trim());
+                var result = command.ExecuteScalar();
+                if (result == null)
+                {
+                    return null;
+                }
+
+                if (int.TryParse(result.ToString(), out var id))
+                {
+                    return id;
+                }
+            }
+
+            return null;
         }
 
-        public bool AddOrUpdateExercise(string exerciseName, string imagePath, string[] keywords = null, string[] muscleGroups = null, string description = "")
+        private static string? SafeGetString(SQLiteDataReader reader, string columnName)
         {
             try
             {
-                if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                var ordinal = reader.GetOrdinal(columnName);
+                if (reader.IsDBNull(ordinal))
                 {
-                    return ImportImageForExercise(exerciseName, imagePath);
+                    return null;
                 }
 
-                // Si no hay imagen, solo crear/actualizar el ejercicio
-                using (var connection = new SQLiteConnection(_connectionString))
-                {
-                    connection.Open();
-
-                    var exerciseId = GetExerciseId(connection, exerciseName);
-                    if (exerciseId == null)
-                    {
-                        // Crear nuevo ejercicio
-                        exerciseId = CreateExercise(connection, exerciseName);
-                    }
-                }
-
-                return true;
+                return reader.GetString(ordinal);
             }
-            catch (Exception)
+            catch (IndexOutOfRangeException)
             {
-                return false;
-            }
-        }
-
-        public bool RemoveExercise(string exerciseName)
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"🗑️ Intentando eliminar ejercicio: {exerciseName}");
-
-                using (var connection = new SQLiteConnection(_connectionString))
-                {
-                    connection.Open();
-
-                    var exerciseId = GetExerciseId(connection, exerciseName);
-                    if (exerciseId == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"❌ Ejercicio no encontrado: {exerciseName}");
-                        return false;
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"Exercise ID encontrado: {exerciseId}");
-
-                    // Eliminar imágenes asociadas
-                    var deleteQuery = "DELETE FROM ExerciseImages WHERE ExerciseId = @exerciseId";
-                    using (var command = new SQLiteCommand(deleteQuery, connection))
-                    {
-                        command.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
-                        var rowsAffected = command.ExecuteNonQuery();
-                        System.Diagnostics.Debug.WriteLine($"Filas eliminadas de ExerciseImages: {rowsAffected}");
-                    }
-
-                    // Verificar eliminación
-                    var checkQuery = "SELECT COUNT(*) FROM ExerciseImages WHERE ExerciseId = @exerciseId";
-                    using (var checkCommand = new SQLiteCommand(checkQuery, connection))
-                    {
-                        checkCommand.Parameters.AddWithValue("@exerciseId", exerciseId.Value);
-                        var remaining = Convert.ToInt32(checkCommand.ExecuteScalar());
-                        System.Diagnostics.Debug.WriteLine($"Registros restantes: {remaining}");
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine($"✅ Imagen eliminada exitosamente para: {exerciseName}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error eliminando ejercicio: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                return false;
+                return null;
             }
         }
     }

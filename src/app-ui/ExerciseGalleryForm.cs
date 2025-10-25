@@ -60,6 +60,7 @@ namespace GymRoutineGenerator.UI
             Text = "Galeria de ejercicios";
             StartPosition = FormStartPosition.CenterScreen;
             WindowState = FormWindowState.Maximized;
+            ShowInTaskbar = false;
             MinimumSize = new Size(1280, 800);
             BackColor = Color.White;
 

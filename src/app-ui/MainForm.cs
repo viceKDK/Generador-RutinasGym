@@ -37,6 +37,8 @@ namespace GymRoutineGenerator.UI
         private RichTextBox routineDisplayTextBox;
         private ProgressBar progressBar;
         private Label statusLabel;
+        private Button dataSourceButton;
+        private Models.ManualExerciseDataSource generationDataSource = Models.ManualExerciseDataSource.Primary;
         private WordDocumentExporter exportService;
         private readonly SQLiteExerciseImageDatabase imageDatabase = new SQLiteExerciseImageDatabase();
         private List<WorkoutDay> lastGeneratedPlan = new List<WorkoutDay>();
@@ -51,11 +53,9 @@ namespace GymRoutineGenerator.UI
         private MenuStrip menuStrip;
         private StatusStrip statusStrip;
         private ToolStripStatusLabel selectionStatusLabel;
-        private ToolStripMenuItem? copySelectionMenuItem;
 
         private readonly ExerciseImageSearchService exerciseSearchService = new();
         private ManualExerciseLibraryService? manualExerciseLibraryService;
-        private ExerciseGalleryForm? exerciseGalleryForm;
 
         public ManualExerciseSelectionStore ManualSelectionStore => manualSelectionStore;
 
@@ -79,8 +79,32 @@ namespace GymRoutineGenerator.UI
             // Ensure clean window title without emoji
             this.Text = "Generador de Rutinas de Gimnasio";
 
+            // Configurar agrupamiento en barra de tareas para la ventana principal
+            TaskbarGroupingHelper.ConfigureFormGrouping(this);
+
             // Add resize event for responsive design
             this.Resize += MainForm_Resize;
+
+            // Ensure proper cleanup on form close
+            this.FormClosing += MainForm_FormClosing;
+        }
+
+        private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            // Cleanup resources
+            _host?.Dispose();
+
+            // Force application exit to ensure process terminates
+            Application.Exit();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _host?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         private void MainForm_Resize(object sender, EventArgs e)
@@ -261,13 +285,30 @@ namespace GymRoutineGenerator.UI
             };
             goalsCheckedListBox.Items.AddRange(new object[]
             {
-                "Ganar fuerza",
-                "Ganar masa muscular",
-                "Perder peso",
-                "Mejorar resistencia",
-                "Tonificar el cuerpo"
+                "Resistencia",
+                "Masa muscular",
+                "Fuerza",
+                "Baja de peso"
             });
-            goalsCheckedListBox.SetItemChecked(0, true); // Default: Ganar fuerza
+            goalsCheckedListBox.SetItemChecked(0, true);
+
+            // Botón fino y largo para seleccionar fuente de ejercicios
+            dataSourceButton = new Button
+            {
+                Text = "Fuente: BD principal (personalizada)",
+                Width = 360,
+                Height = 32,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(248, 249, 250)
+            };
+            dataSourceButton.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+            dataSourceButton.Click += (_, __) =>
+            {
+                generationDataSource = generationDataSource == Models.ManualExerciseDataSource.Primary
+                    ? Models.ManualExerciseDataSource.Secondary
+                    : Models.ManualExerciseDataSource.Primary;
+                UpdateDataSourceButtonText();
+            };
 
             // Action Buttons with modern styling
             generateButton = new ModernButton
@@ -297,7 +338,7 @@ namespace GymRoutineGenerator.UI
 
             previewButton = new ModernButton
             {
-                Text = "Vista previa",
+                Text = "Alternativa",
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 Size = new Size(200, 60),
                 NormalColor = Color.FromArgb(102, 16, 242),
@@ -306,7 +347,7 @@ namespace GymRoutineGenerator.UI
                 BorderRadius = 12,
                 Enabled = false
             };
-            previewButton.Click += PreviewButton_Click;
+            previewButton.Click += AlternativeButton_Click;
 
             exportToPDFButton = new ModernButton
             {
@@ -380,7 +421,7 @@ namespace GymRoutineGenerator.UI
 
             goalsCard.Controls.AddRange(new Control[]
             {
-                goalsCheckedListBox
+                goalsCheckedListBox, dataSourceButton
             });
 
             routineCard.Controls.AddRange(new Control[]
@@ -443,6 +484,10 @@ namespace GymRoutineGenerator.UI
             // Goals card
             goalsCard.Location = new Point(leftMargin, trainingCard.Bottom + cardSpacing);
             goalsCheckedListBox.Location = new Point(20, 60);
+            if (dataSourceButton != null)
+            {
+                dataSourceButton.Location = new Point(20, goalsCheckedListBox.Bottom + 10);
+            }
 
             // Buttons with improved layout
             int buttonsTop = goalsCard.Bottom + cardSpacing;
@@ -498,20 +543,13 @@ namespace GymRoutineGenerator.UI
 
             // Menú Herramientas
             var toolsMenu = new ToolStripMenuItem("Herramientas");
-            var imagesManagerItem = new ToolStripMenuItem("Gestor de imágenes...");
+            var imagesManagerItem = new ToolStripMenuItem("Gestor de ejercicios...");
             imagesManagerItem.Click += (s, e) => ShowImageManager();
             toolsMenu.DropDownItems.Add(imagesManagerItem);
 
             var exerciseGalleryItem = new ToolStripMenuItem("Galería de ejercicios...");
             exerciseGalleryItem.Click += (s, e) => ShowExerciseGallery();
             toolsMenu.DropDownItems.Add(exerciseGalleryItem);
-
-            copySelectionMenuItem = new ToolStripMenuItem("Copiar selección manual al portapapeles")
-            {
-                Enabled = manualSelectionStore.CurrentSelection.Count > 0
-            };
-            copySelectionMenuItem.Click += (s, e) => CopyManualSelectionToClipboard();
-            toolsMenu.DropDownItems.Add(copySelectionMenuItem);
 
             // Menú Configuración
             var configMenu = new ToolStripMenuItem("Config");
@@ -604,6 +642,7 @@ namespace GymRoutineGenerator.UI
                 progressBar.Style = ProgressBarStyle.Marquee;
 
                 var profile = BuildUserProfileFromForm();
+                exerciseSearchService.PreferredSource = generationDataSource;
 
                 // Verificar disponibilidad de Ollama
                 bool isOllamaAvailable = await ollamaService.IsOllamaAvailable();
@@ -629,7 +668,7 @@ namespace GymRoutineGenerator.UI
                 statusLabel.Text = "Generando rutina con IA (Mistral)... Esto puede tomar 1-2 minutos.";
                 Application.DoEvents();
 
-                var aiResponse = await ollamaService.GenerateRoutineWithAI(profile);
+                var aiResponse = await ollamaService.GenerateRoutineWithAI(profile, false);
 
                 if (aiResponse.Success && aiResponse.WorkoutDays != null && aiResponse.WorkoutDays.Count > 0)
                 {
@@ -712,6 +751,65 @@ namespace GymRoutineGenerator.UI
             }
         }
 
+        private async void AlternativeButton_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Reutiliza las mismas validaciones que el botón Generar
+                if (fitnessLevelComboBox.SelectedIndex == -1 || string.IsNullOrWhiteSpace(fitnessLevelComboBox.Text))
+                {
+                    MessageBox.Show("Por favor selecciona tu nivel de fitness (Principiante, Intermedio o Avanzado).",
+                        "Nivel Requerido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    fitnessLevelComboBox.Focus();
+                    return;
+                }
+
+                previewButton.Enabled = false;
+                statusLabel.Text = "Generando alternativa...";
+                statusLabel.Visible = true;
+                progressBar.Visible = true;
+                progressBar.Style = ProgressBarStyle.Marquee;
+
+                var profile = BuildUserProfileFromForm();
+                exerciseSearchService.PreferredSource = generationDataSource;
+
+                if (!await ollamaService.IsOllamaAvailable())
+                {
+                    MessageBox.Show("Ollama no está disponible.", "IA No Disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var aiResponse = await ollamaService.GenerateRoutineWithAI(profile, true);
+                if (aiResponse.Success && aiResponse.WorkoutDays != null && aiResponse.WorkoutDays.Count > 0)
+                {
+                    lastGeneratedPlan = aiResponse.WorkoutDays;
+                    lastGeneratedProfile = profile;
+                    lastGeneratedRoutine = FormatRoutineForDisplay(profile, aiResponse.WorkoutDays);
+                    PopulateRichTextBoxWithImages(profile, aiResponse.WorkoutDays);
+                    statusLabel.Text = "Alternativa generada";
+                    exportButton.Enabled = true;
+                    previewButton.Enabled = true;
+                    exportToPDFButton.Enabled = true;
+                }
+                else
+                {
+                    statusLabel.Text = "No se pudo generar una alternativa";
+                }
+            }
+            finally
+            {
+                progressBar.Visible = false;
+            }
+        }
+
+        private void UpdateDataSourceButtonText()
+        {
+            if (dataSourceButton == null) return;
+            dataSourceButton.Text = generationDataSource == Models.ManualExerciseDataSource.Primary
+                ? "Fuente: BD principal (personalizada)"
+                : "Fuente: BD secundaria (general)";
+        }
+
         private string FormatRoutineForDisplay(UserProfile profile, List<WorkoutDay> workoutDays)
         {
             var sb = new StringBuilder();
@@ -744,13 +842,7 @@ namespace GymRoutineGenerator.UI
                 {
                     sb.AppendLine($" {exercise.Name}");
                     sb.AppendLine($"    {exercise.SetsAndReps}");
-                    sb.AppendLine($"    {exercise.Instructions}");
-
-                    if (exercise.ImageData != null && exercise.ImageData.Length > 0)
-                    {
-                        sb.AppendLine($"    Imagen: Disponible");
-                    }
-
+                    // No mostrar instrucciones ni placeholders de imagen en texto simple
                     sb.AppendLine();
                 }
 
@@ -763,6 +855,35 @@ namespace GymRoutineGenerator.UI
             sb.AppendLine("".PadRight(50, ' '));
 
             return sb.ToString();
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            var normalized = text.Normalize(NormalizationForm.FormD);
+            var sbClean = new StringBuilder();
+            foreach (var c in normalized)
+            {
+                var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sbClean.Append(c);
+            }
+            return sbClean.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string NormalizeForComparison(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var t = RemoveDiacritics(text);
+            // Fix common mojibake from UTF-8 -> Latin1 issues
+            t = t.Replace("Ã¡", "a").Replace("Ã©", "e").Replace("Ã­", "i").Replace("Ã³", "o").Replace("Ãº", "u").Replace("Ã±", "n");
+            t = t.Replace("tÃ©cnica", "tecnica").Replace("tǸcnica", "tecnica");
+            var sb = new StringBuilder();
+            foreach (var ch in t)
+            {
+                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == ' ') sb.Append(ch);
+            }
+            return sb.ToString().ToLowerInvariant();
         }
 
         private void PreviewButton_Click(object? sender, EventArgs e)
@@ -897,6 +1018,9 @@ namespace GymRoutineGenerator.UI
                 StartPosition = FormStartPosition.CenterParent,
                 BackColor = Color.White
             };
+
+            // Configurar agrupamiento en barra de tareas
+            TaskbarGroupingHelper.ConfigureFormGrouping(previewForm);
 
             var tabControl = new TabControl { Dock = DockStyle.Fill };
 
@@ -1181,7 +1305,8 @@ namespace GymRoutineGenerator.UI
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine($"Error insertando imagen: {ex.Message}");
-                            routineDisplayTextBox.AppendText($"    [Imagen de {exercise.Name} no disponible]\n");
+                            routineDisplayTextBox.AppendText($"    \n");
+                            // No mostrar placeholder de imagen
                         }
                     }
 
@@ -1189,11 +1314,8 @@ namespace GymRoutineGenerator.UI
                     routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 9);
                     routineDisplayTextBox.AppendText($"    {exercise.SetsAndReps}\n");
 
-                    // Instrucciones
-                    if (!string.IsNullOrWhiteSpace(exercise.Instructions))
-                    {
-                        routineDisplayTextBox.AppendText($"    {exercise.Instructions}\n");
-                    }
+                    // Instrucciones (omitir si es la frase genérica)
+                    // No mostrar instrucciones
 
                     routineDisplayTextBox.AppendText("\n");
                 }
@@ -1283,7 +1405,7 @@ namespace GymRoutineGenerator.UI
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine($"Error insertando imagen en preview: {ex.Message}");
-                            richTextBox.AppendText($"    [Imagen de {exercise.Name} no disponible]\n");
+                            richTextBox.AppendText($"    \n");
                         }
                     }
 
@@ -1291,10 +1413,16 @@ namespace GymRoutineGenerator.UI
                     richTextBox.SelectionFont = new Font("Segoe UI", 9);
                     richTextBox.AppendText($"    {exercise.SetsAndReps}\n");
 
-                    // Instrucciones
-                    if (!string.IsNullOrWhiteSpace(exercise.Instructions))
+                    // Instrucciones (omitir si es la frase genérica)
+                    if (false && !string.IsNullOrWhiteSpace(exercise.Instructions))
                     {
-                        richTextBox.AppendText($"    {exercise.Instructions}\n");
+                        var norm = RemoveDiacritics(exercise.Instructions).ToLowerInvariant();
+                        var isDefault = norm.Contains("mantener tecnica correcta") || norm.Equals("mantener tecnica correcta")
+                            || (norm.Contains("tecnica") && norm.Contains("correct"));
+                        if (!isDefault)
+                        {
+                            richTextBox.AppendText($"    {exercise.Instructions}\n");
+                        }
                     }
 
                     richTextBox.AppendText("\n");
@@ -1366,52 +1494,6 @@ namespace GymRoutineGenerator.UI
             if (control is RichTextBox rtb) rtb.BorderStyle = BorderStyle.FixedSingle;
         }
 
-        // Simple handlers for menu actions
-        private void CopyManualSelectionToClipboard()
-        {
-            var selection = manualSelectionStore.CurrentSelection;
-            if (selection.Count == 0)
-            {
-                MessageBox.Show("No hay ejercicios en la selección manual.", "Selección manual", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var builder = new StringBuilder();
-            foreach (var entry in selection)
-            {
-                var lineBuilder = new StringBuilder(entry.DisplayName);
-
-                if (!string.IsNullOrWhiteSpace(entry.Source))
-                {
-                    lineBuilder.Append($" [{entry.Source}]");
-                }
-
-                if (!string.IsNullOrWhiteSpace(entry.ImagePath))
-                {
-                    lineBuilder.Append($" - {entry.ImagePath}");
-                }
-
-                if (entry.MuscleGroups.Count > 0)
-                {
-                    lineBuilder.Append($" (Grupos: {string.Join(", ", entry.MuscleGroups)})");
-                }
-
-                builder.AppendLine(lineBuilder.ToString());
-            }
-
-            try
-            {
-                Clipboard.SetText(builder.ToString().TrimEnd());
-                statusLabel.Text = $"Selección manual copiada ({selection.Count} ejercicios)";
-                statusLabel.Visible = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"No se pudo copiar al portapapeles: {ex.Message}", "Portapapeles", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Debug.WriteLine($"[MainForm] Error copiando selección manual: {ex}");
-            }
-        }
-
         private void ManualSelectionStore_SelectionChanged(object? sender, ManualExerciseSelectionChangedEventArgs e)
         {
             if (selectionStatusLabel == null || selectionStatusLabel.IsDisposed)
@@ -1445,19 +1527,14 @@ namespace GymRoutineGenerator.UI
                 _ => $"Selección manual: {count} ejercicios"
             };
 
-            if (copySelectionMenuItem != null)
-            {
-                copySelectionMenuItem.Enabled = count > 0;
-            }
         }
 
         private void ShowImageManager()
         {
             try
             {
-                var imageManagerForm = new ImprovedExerciseImageManagerForm();
-                imageManagerForm.Show();
-                imageManagerForm.BringToFront();
+                // Usar Singleton para evitar múltiples instancias
+                HybridExerciseManagerForm.ShowSingleton();
             }
             catch (Exception ex)
             {
@@ -1470,24 +1547,12 @@ namespace GymRoutineGenerator.UI
         {
             try
             {
-                if (exerciseGalleryForm == null || exerciseGalleryForm.IsDisposed)
-                {
-                    exerciseGalleryForm = new ExerciseGalleryForm(GetManualLibraryService(), manualSelectionStore)
-                    {
-                        Owner = this
-                    };
-                    exerciseGalleryForm.FormClosed += (_, _) => exerciseGalleryForm = null;
-                    exerciseGalleryForm.Show(this);
-                }
-                else
-                {
-                    if (exerciseGalleryForm.WindowState == FormWindowState.Minimized)
-                    {
-                        exerciseGalleryForm.WindowState = FormWindowState.Normal;
-                    }
+                // Abrir galería como ventana modal
+                using var galleryForm = new ExerciseGalleryForm(GetManualLibraryService(), manualSelectionStore);
 
-                    exerciseGalleryForm.Focus();
-                }
+                // No configurar agrupamiento para evitar doble icono en barra de tareas
+
+                galleryForm.ShowDialog(this);  // Modal - bloquea hasta que se cierre
             }
             catch (Exception ex)
             {
@@ -1522,3 +1587,4 @@ namespace GymRoutineGenerator.UI
     }
 }
         
+

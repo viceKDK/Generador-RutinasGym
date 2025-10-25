@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -44,7 +44,7 @@ namespace GymRoutineGenerator.UI
         /// <summary>
         /// Genera rutina personalizada con IA
         /// </summary>
-        public async Task<AIRoutineResponse> GenerateRoutineWithAI(UserProfile profile)
+        public async Task<AIRoutineResponse> GenerateRoutineWithAI(UserProfile profile, bool alternative = false)
         {
             // 1. Determinar division de grupos musculares segun dias
             var muscleSplit = DetermineMuscleGroupSplit(profile.TrainingDays, profile.FitnessLevel, profile.Age);
@@ -79,7 +79,7 @@ namespace GymRoutineGenerator.UI
 
             foreach (var day in muscleSplit)
             {
-                var prompt = BuildPromptForDay(profile, day, availableExercises, dayNumber);
+                var prompt = BuildPromptForDay(profile, day, availableExercises, dayNumber, alternative);
 
                 // Guardar prompt en archivo
                 try
@@ -88,7 +88,7 @@ namespace GymRoutineGenerator.UI
                 }
                 catch { }
 
-                var aiResponse = await CallOllamaAPI(prompt);
+                var aiResponse = await CallOllamaAPI(prompt, alternative);
 
                 // Guardar respuesta en archivo
                 try
@@ -192,7 +192,7 @@ namespace GymRoutineGenerator.UI
         }
 
         /// <summary>
-        /// Calcula distribución de ejercicios por grupo muscular
+        /// Calcula distribuciÃ³n de ejercicios por grupo muscular
         /// </summary>
         private int[] CalculateExerciseDistribution(int muscleGroupCount, int totalExercises)
         {
@@ -204,14 +204,14 @@ namespace GymRoutineGenerator.UI
             }
             else if (muscleGroupCount == 2)
             {
-                // Primer grupo (principal/más grande): 3 ejercicios
-                // Segundo grupo (secundario/más pequeño): 2 ejercicios
+                // Primer grupo (principal/mÃ¡s grande): 3 ejercicios
+                // Segundo grupo (secundario/mÃ¡s pequeÃ±o): 2 ejercicios
                 distribution[0] = 3;
                 distribution[1] = 2;
             }
             else if (muscleGroupCount == 3)
             {
-                // 2-2-1 distribución
+                // 2-2-1 distribuciÃ³n
                 distribution[0] = 2;
                 distribution[1] = 2;
                 distribution[2] = 1;
@@ -234,14 +234,14 @@ namespace GymRoutineGenerator.UI
         /// <summary>
         /// Construye prompt para IA
         /// </summary>
-        private string BuildPromptForDay(UserProfile profile, MuscleGroupDay day, Dictionary<string, List<ExerciseWithImage>> availableExercises, int dayNumber)
+        private string BuildPromptForDay(UserProfile profile, MuscleGroupDay day, Dictionary<string, List<ExerciseWithImage>> availableExercises, int dayNumber, bool shuffled)
         {
-            // Calcular distribución de ejercicios por grupo
+            // Calcular distribuciÃ³n de ejercicios por grupo
             int totalExercises = 5;
             var distribution = CalculateExerciseDistribution(day.MuscleGroups.Length, totalExercises);
 
             var exerciseList = new StringBuilder();
-            exerciseList.AppendLine("**DISTRIBUCIÓN EXACTA DE EJERCICIOS:**");
+            exerciseList.AppendLine("**DISTRIBUCIÃ“N EXACTA DE EJERCICIOS:**");
             for (int i = 0; i < day.MuscleGroups.Length; i++)
             {
                 exerciseList.AppendLine($"- {day.MuscleGroups[i]}: {distribution[i]} ejercicios");
@@ -253,7 +253,9 @@ namespace GymRoutineGenerator.UI
                 if (availableExercises.TryGetValue(muscle, out var exercises))
                 {
                     exerciseList.AppendLine($"=== {muscle.ToUpper()} ===");
-                    foreach (var ex in exercises.Take(10))
+                    var rand = new Random();
+                    var list = shuffled ? exercises.OrderBy(_ => rand.Next()).ToList() : exercises;
+                    foreach (var ex in list.Take(10))
                     {
                         exerciseList.AppendLine($"- {ex.Name}");
                     }
@@ -261,21 +263,21 @@ namespace GymRoutineGenerator.UI
                 }
             }
 
-            // Agregar variación al prompt
+            // Agregar variaciÃ³n al prompt
             var variationPhrase = new[] {
                 "Selecciona ejercicios variados y efectivos",
-                "Elige una combinación diferente de ejercicios",
-                "Varía la selección de ejercicios para mantener el entrenamiento interesante",
-                "Crea una rutina única con ejercicios diversos"
+                "Elige una combinaciÃ³n diferente de ejercicios",
+                "VarÃ­a la selecciÃ³n de ejercicios para mantener el entrenamiento interesante",
+                "Crea una rutina Ãºnica con ejercicios diversos"
             }[new Random().Next(4)];
 
-            // Determinar series y reps según nivel y objetivo
+            // Determinar series y reps segÃºn nivel y objetivo
             string goalsStr = profile.Goals != null ? string.Join(", ", profile.Goals) : "";
             string seriesRepsGuide = GetSeriesRepsGuide(profile.FitnessLevel, goalsStr);
 
             var prompt = $@"Eres un entrenador personal experto. Genera ejercicios para: {day.DayName}
 
-CLIENTE: {profile.Name}, {profile.Age} años, {profile.Gender}, {profile.FitnessLevel}
+CLIENTE: {profile.Name}, {profile.Age} aÃ±os, {profile.Gender}, {profile.FitnessLevel}
 GRUPOS MUSCULARES: {string.Join(", ", day.MuscleGroups)}
 
 EJERCICIOS DISPONIBLES:
@@ -284,32 +286,32 @@ EJERCICIOS DISPONIBLES:
 REGLAS DE SERIES Y REPETICIONES:
 {seriesRepsGuide}
 
-**━━━ REGLA CRÍTICA - ORDEN ESTRICTO ━━━**
+**â”â”â” REGLA CRÃTICA - ORDEN ESTRICTO â”â”â”**
 Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
 {string.Join("\n", distribution.Select((count, i) => $"{string.Join("\n", Enumerable.Range(distribution.Take(i).Sum(), count).Select(j => $"Ejercicio #{j + 1}: Seleccionar de === {day.MuscleGroups[i].ToUpper()} ==="))}"))}
 
-**━━━ INSTRUCCIONES OBLIGATORIAS ━━━**
-1. Generar SOLO 5 ejercicios (ni más ni menos)
+**â”â”â” INSTRUCCIONES OBLIGATORIAS â”â”â”**
+1. Generar SOLO 5 ejercicios (ni mÃ¡s ni menos)
 2. COPIAR el nombre EXACTO de la lista (NO traducir, NO inventar)
-3. Seguir el orden numérico de arriba (Ejercicio #1, #2, #3, #4, #5)
-4. NO agregar texto extra ni explicaciones después del 5º ejercicio
-5. NO usar emojis ni código markdown (```)
-6. Respetar series/reps según nivel del cliente
+3. Seguir el orden numÃ©rico de arriba (Ejercicio #1, #2, #3, #4, #5)
+4. NO agregar texto extra ni explicaciones despuÃ©s del 5Âº ejercicio
+5. NO usar emojis ni cÃ³digo markdown (```)
+6. Respetar series/reps segÃºn nivel del cliente
 
-**━━━ FORMATO OBLIGATORIO ━━━**
+**â”â”â” FORMATO OBLIGATORIO â”â”â”**
 [EJERCICIO]Nombre copiado exacto de la lista
 [SERIES]3 x 12
 [INSTRUCCIONES]Mantener postura correcta y respirar bien
 [FIN]
 
-**GENERAR AHORA LOS 5 EJERCICIOS (DETENER DESPUÉS DEL 5º [FIN]):**";
+**GENERAR AHORA LOS 5 EJERCICIOS (DETENER DESPUÃ‰S DEL 5Âº [FIN]):**";
 
             return prompt;
         }
 
         /// <summary>
-        /// Obtiene guía de series y repeticiones según nivel y objetivo
+        /// Obtiene guÃ­a de series y repeticiones segÃºn nivel y objetivo
         /// </summary>
         private string GetSeriesRepsGuide(string fitnessLevel, string goals)
         {
@@ -339,14 +341,14 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
             {
                 return @"PRINCIPIANTE:
 - Todos los ejercicios: 3 x 12-15 reps
-- Enfoque en técnica correcta";
+- Enfoque en tÃ©cnica correcta";
             }
         }
 
         /// <summary>
         /// Llama a Ollama API
         /// </summary>
-        private async Task<string> CallOllamaAPI(string prompt)
+        private async Task<string> CallOllamaAPI(string prompt, bool alternative)
         {
             try
             {
@@ -357,9 +359,9 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                     stream = false,
                     options = new
                     {
-                        temperature = 0.7,  // Aumentado para mayor variación (0.3 -> 0.7)
-                        top_p = 0.9,        // Aumentado para mayor diversidad
-                        top_k = 40,         // Agregar top_k para más variación
+                        temperature = (alternative ? 0.9 : 0.7),
+                        top_p = (alternative ? 0.95 : 0.9),
+                        top_k = (alternative ? 80 : 40),         // Agregar top_k para mÃ¡s variaciÃ³n
                         num_predict = 3000,
                         seed = new Random().Next() // Seed aleatorio para evitar repeticiones
                     }
@@ -404,7 +406,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
             if (string.IsNullOrWhiteSpace(aiResponse))
             {
-                System.Diagnostics.Debug.WriteLine("ERROR: Respuesta de IA vacía");
+                System.Diagnostics.Debug.WriteLine("ERROR: Respuesta de IA vacÃ­a");
                 return workoutDay;
             }
 
@@ -428,10 +430,10 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
                     string exerciseName = "";
                     string series = "";
-                    string instructions = "";
+                    string Instructions = string.Empty;
 
-                    // Soportar múltiples formatos:
-                    // Formato 1: [EJERCICIO]Name [SERIES]... [INSTRUCCIONES]... (una o múltiples líneas)
+                    // Soportar mÃºltiples formatos:
+                    // Formato 1: [EJERCICIO]Name [SERIES]... [INSTRUCCIONES]... (una o mÃºltiples lÃ­neas)
                     // Formato 2: [Nombre]Series [INSTRUCCIONES]...
 
                     var lines = block.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -442,14 +444,14 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
                         // Detectar [EJERCICIO] o [EJERCIO] (con typo de IA)
                         if (trimmed.StartsWith("[EJERCICIO]") || trimmed.StartsWith("[EJERCIO]") ||
-                            (trimmed.StartsWith("[Ejercicio") && trimmed.Contains("]"))) // También [Ejercicio 1], [Ejercicio 2], etc.
+                            (trimmed.StartsWith("[Ejercicio") && trimmed.Contains("]"))) // TambiÃ©n [Ejercicio 1], [Ejercicio 2], etc.
                         {
                             var startTag = trimmed.StartsWith("[EJERCICIO]") ? "[EJERCICIO]" :
                                           trimmed.StartsWith("[EJERCIO]") ? "[EJERCIO]" :
                                           trimmed.Substring(0, trimmed.IndexOf(']') + 1);
                             var ejercicioIdx = startTag.Length;
 
-                            // Caso 1: [EJERCICIO]Name [SERIES]... (en la misma línea)
+                            // Caso 1: [EJERCICIO]Name [SERIES]... (en la misma lÃ­nea)
                             if (trimmed.Contains("[SERIES]") || trimmed.Contains("[SERIE]"))
                             {
                                 var seriesTag = trimmed.Contains("[SERIES]") ? "[SERIES]" : "[SERIE]";
@@ -468,21 +470,21 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                                 }
                                 System.Diagnostics.Debug.WriteLine($"  Formato 1a - Nombre: '{exerciseName}', Series: '{series}'");
                             }
-                            // Caso 2: [EJERCICIO]Name (línea separada, series viene después)
+                            // Caso 2: [EJERCICIO]Name (lÃ­nea separada, series viene despuÃ©s)
                             else
                             {
                                 exerciseName = trimmed.Substring(ejercicioIdx).Trim();
-                                System.Diagnostics.Debug.WriteLine($"  Formato 1b - Nombre: '{exerciseName}' (series en siguiente línea)");
+                                System.Diagnostics.Debug.WriteLine($"  Formato 1b - Nombre: '{exerciseName}' (series en siguiente lÃ­nea)");
 
-                                // Verificar si la siguiente línea es directamente las series (sin tag [SERIES])
+                                // Verificar si la siguiente lÃ­nea es directamente las series (sin tag [SERIES])
                                 if (i + 1 < lines.Length)
                                 {
                                     var nextLine = lines[i + 1].Trim();
-                                    // Si la siguiente línea parece series (ej: "3 x 12", "4x10")
+                                    // Si la siguiente lÃ­nea parece series (ej: "3 x 12", "4x10")
                                     if (System.Text.RegularExpressions.Regex.IsMatch(nextLine, @"^\d+\s*x\s*\d+"))
                                     {
                                         series = nextLine;
-                                        i++; // Saltar esta línea en la próxima iteración
+                                        i++; // Saltar esta lÃ­nea en la prÃ³xima iteraciÃ³n
                                         System.Diagnostics.Debug.WriteLine($"  Series detectadas sin tag: '{series}'");
                                     }
                                 }
@@ -495,7 +497,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                             series = trimmed.Substring(seriesTag.Length).Replace("]S", "").Trim(); // Fix [SERIE]S
                             System.Diagnostics.Debug.WriteLine($"  Series: '{series}'");
                         }
-                        // Detectar línea que parece series directamente (sin tag)
+                        // Detectar lÃ­nea que parece series directamente (sin tag)
                         else if (string.IsNullOrEmpty(series) && !string.IsNullOrEmpty(exerciseName) &&
                                 System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+\s*x\s*\d+"))
                         {
@@ -536,7 +538,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                         var formattedSeries = series.Replace("x", " x ");
                         if (formattedSeries.Contains("  ")) formattedSeries = formattedSeries.Replace("  ", " ");
 
-                        System.Diagnostics.Debug.WriteLine($"✓ Ejercicio parseado correctamente: {exerciseName} - {formattedSeries}");
+                        System.Diagnostics.Debug.WriteLine($"âœ“ Ejercicio parseado correctamente: {exerciseName} - {formattedSeries}");
 
                         // Buscar imagen del ejercicio
                         var exerciseWithImage = _exerciseSearch.FindExerciseWithImage(exerciseName);
@@ -573,10 +575,10 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
             System.Diagnostics.Debug.WriteLine($"Total ejercicios parseados para {dayName}: {workoutDay.Exercises.Count}");
 
-            // FALLBACK: Si no se parseó ningún ejercicio, intentar un parseo más simple
+            // FALLBACK: Si no se parseÃ³ ningÃºn ejercicio, intentar un parseo mÃ¡s simple
             if (workoutDay.Exercises.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine("⚠️ FALLBACK: Intentando parseo simple...");
+                System.Diagnostics.Debug.WriteLine("âš ï¸ FALLBACK: Intentando parseo simple...");
                 workoutDay.Exercises = ParseSimpleFormat(aiResponse, muscleGroups, availableExercises);
                 System.Diagnostics.Debug.WriteLine($"Ejercicios parseados con fallback: {workoutDay.Exercises.Count}");
             }
@@ -584,14 +586,14 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
             // POST-PROCESAMIENTO: Ordenar ejercicios por grupo muscular
             workoutDay.Exercises = ReorderExercisesByMuscleGroup(workoutDay.Exercises, muscleGroups, availableExercises);
 
-            // Limitar a máximo 5 ejercicios (por si la IA genera de más)
+            // Limitar a mÃ¡ximo 5 ejercicios (por si la IA genera de mÃ¡s)
             if (workoutDay.Exercises.Count > 5)
             {
-                System.Diagnostics.Debug.WriteLine($"ADVERTENCIA: IA generó {workoutDay.Exercises.Count} ejercicios, limitando a 5");
+                System.Diagnostics.Debug.WriteLine($"ADVERTENCIA: IA generÃ³ {workoutDay.Exercises.Count} ejercicios, limitando a 5");
                 workoutDay.Exercises = workoutDay.Exercises.Take(5).ToList();
             }
 
-            System.Diagnostics.Debug.WriteLine($"Ejercicios después de reordenar:");
+            System.Diagnostics.Debug.WriteLine($"Ejercicios despuÃ©s de reordenar:");
             foreach (var ex in workoutDay.Exercises)
             {
                 System.Diagnostics.Debug.WriteLine($"  - {ex.Name}");
@@ -610,25 +612,25 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
             try
             {
                 // Intentar encontrar nombres de ejercicios en la respuesta
-                // Buscar líneas que parezcan ejercicios: "- Ejercicio" o "1. Ejercicio" o simplemente nombres que coincidan
+                // Buscar lÃ­neas que parezcan ejercicios: "- Ejercicio" o "1. Ejercicio" o simplemente nombres que coincidan
                 var lines = aiResponse.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
                 foreach (var line in lines)
                 {
                     var trimmed = line.Trim();
 
-                    // Saltar líneas vacías o muy cortas
+                    // Saltar lÃ­neas vacÃ­as o muy cortas
                     if (trimmed.Length < 5) continue;
 
-                    // Saltar líneas que son headers o meta-info
+                    // Saltar lÃ­neas que son headers o meta-info
                     if (trimmed.StartsWith("Eres ") || trimmed.StartsWith("CLIENTE") ||
                         trimmed.StartsWith("GRUPOS") || trimmed.StartsWith("EJERCICIOS") ||
                         trimmed.StartsWith("REGLAS") || trimmed.StartsWith("INSTRUCCIONES") ||
-                        trimmed.Contains("━━━") || trimmed.Contains("==="))
+                        trimmed.Contains("â”â”â”") || trimmed.Contains("==="))
                         continue;
 
                     // Limpiar prefijos comunes
-                    var cleaned = trimmed.TrimStart('-', '•', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', ' ', '\t');
+                    var cleaned = trimmed.TrimStart(new[] { '-', '*', '1','2','3','4','5','6','7','8','9','0','.', ' ', '\t' });
 
                     // Buscar coincidencias con ejercicios disponibles
                     foreach (var muscle in muscleGroups)
@@ -648,12 +650,12 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                                         {
                                             Name = availEx.Name,
                                             SetsAndReps = "3 x 10",  // Por defecto
-                                            Instructions = "Mantener técnica correcta",
+                                            Instructions = string.Empty,
                                             ImageData = availEx.ImageData,
                                             ImagePath = availEx.ImagePath ?? ""
                                         });
 
-                                        System.Diagnostics.Debug.WriteLine($"  ✓ Matched (simple): {availEx.Name}");
+                                        System.Diagnostics.Debug.WriteLine($"  âœ“ Matched (simple): {availEx.Name}");
 
                                         // Limitar a 5 ejercicios
                                         if (exercises.Count >= 5)
@@ -676,7 +678,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
         }
 
         /// <summary>
-        /// Reordena ejercicios por grupo muscular según el orden especificado
+        /// Reordena ejercicios por grupo muscular segÃºn el orden especificado
         /// </summary>
         private List<Exercise> ReorderExercisesByMuscleGroup(
             List<Exercise> exercises,
@@ -686,7 +688,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
             if (exercises.Count == 0) return exercises;
 
             System.Diagnostics.Debug.WriteLine($"\n=== REORDENANDO EJERCICIOS ===");
-            System.Diagnostics.Debug.WriteLine($"Grupos objetivo en orden: {string.Join(" → ", muscleGroups)}");
+            System.Diagnostics.Debug.WriteLine($"Grupos objetivo en orden: {string.Join(" â†’ ", muscleGroups)}");
 
             // Clasificar cada ejercicio por grupo muscular
             var exercisesByGroup = new Dictionary<string, List<Exercise>>();
@@ -697,7 +699,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
             foreach (var exercise in exercises)
             {
-                // Buscar a qué grupo pertenece este ejercicio
+                // Buscar a quÃ© grupo pertenece este ejercicio
                 string? foundGroup = null;
                 foreach (var muscle in muscleGroups)
                 {
@@ -717,11 +719,11 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                 if (foundGroup != null)
                 {
                     exercisesByGroup[foundGroup].Add(exercise);
-                    System.Diagnostics.Debug.WriteLine($"  '{exercise.Name}' → {foundGroup}");
+                    System.Diagnostics.Debug.WriteLine($"  '{exercise.Name}' â†’ {foundGroup}");
                 }
                 else
                 {
-                    // Buscar en TODOS los grupos disponibles para ver si pertenece a otro día
+                    // Buscar en TODOS los grupos disponibles para ver si pertenece a otro dÃ­a
                     bool belongsToOtherDay = false;
                     foreach (var kvp in availableExercises)
                     {
@@ -733,17 +735,17 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                                 e.Name.Contains(exercise.Name, StringComparison.OrdinalIgnoreCase)))
                             {
                                 belongsToOtherDay = true;
-                                System.Diagnostics.Debug.WriteLine($"  '{exercise.Name}' pertenece a {kvp.Key} - DESCARTADO (no es del día)");
+                                System.Diagnostics.Debug.WriteLine($"  '{exercise.Name}' pertenece a {kvp.Key} - DESCARTADO (no es del dÃ­a)");
                                 break;
                             }
                         }
                     }
 
-                    // Solo agregar si no pertenece a otro grupo del día
+                    // Solo agregar si no pertenece a otro grupo del dÃ­a
                     if (!belongsToOtherDay)
                     {
                         exercisesByGroup[muscleGroups[0]].Add(exercise);
-                        System.Diagnostics.Debug.WriteLine($"  '{exercise.Name}' → {muscleGroups[0]} (por defecto)");
+                        System.Diagnostics.Debug.WriteLine($"  '{exercise.Name}' â†’ {muscleGroups[0]} (por defecto)");
                     }
                 }
             }
@@ -780,3 +782,8 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
         public string Message { get; set; }
     }
 }
+
+
+
+
+
