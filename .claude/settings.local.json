@@ -25,7 +25,10 @@
       "Bash(icacls:*)",
       "Bash(del \"update_shortcut_temp.ps1\")",
       "Bash(then echo \"Ejecutable generado correctamente\")",
-      "Bash(else echo \"ERROR: No se generó el ejecutable\")"
+      "Bash(else echo \"ERROR: No se generó el ejecutable\")",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

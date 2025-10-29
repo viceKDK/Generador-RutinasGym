@@ -430,7 +430,7 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
 
                     string exerciseName = "";
                     string series = "";
-                    string Instructions = string.Empty;
+                    string instructions = string.Empty;
 
                     // Soportar mÃºltiples formatos:
                     // Formato 1: [EJERCICIO]Name [SERIES]... [INSTRUCCIONES]... (una o mÃºltiples lÃ­neas)
