@@ -211,7 +211,7 @@ namespace GymRoutineGenerator.UI
                 using (var cmd = connection.CreateCommand())
                 {
                     cmd.CommandText = @"
-                        SELECT Nombre, GrupoMuscular, RutaImagen
+                        SELECT Nombre, GrupoMuscular, RutaImagen, LinkVideo
                         FROM Ejercicios
                         WHERE Nombre = @nombre
                         COLLATE NOCASE
@@ -223,6 +223,7 @@ namespace GymRoutineGenerator.UI
                     if (reader.Read())
                     {
                         var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                        var videoUrl = reader.IsDBNull(3) ? string.Empty : reader.GetString(3);
                         if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
                         {
                             var resolved = ResolveImageFromDocs(reader.GetString(0));
@@ -239,6 +240,7 @@ namespace GymRoutineGenerator.UI
                             {
                                 Name = reader.GetString(0),
                                 ImagePath = imagePath,
+                                VideoUrl = videoUrl,
                                 Source = "BD Secundaria"
                             };
                         }
@@ -249,7 +251,7 @@ namespace GymRoutineGenerator.UI
                 using (var cmd = connection.CreateCommand())
                 {
                     cmd.CommandText = @"
-                        SELECT Nombre, GrupoMuscular, RutaImagen
+                        SELECT Nombre, GrupoMuscular, RutaImagen, LinkVideo
                         FROM Ejercicios
                         WHERE Nombre LIKE @nombre
                         COLLATE NOCASE
@@ -261,6 +263,7 @@ namespace GymRoutineGenerator.UI
                     if (reader.Read())
                     {
                         var imagePath = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                        var videoUrl = reader.IsDBNull(3) ? string.Empty : reader.GetString(3);
                         if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
                         {
                             var resolved = ResolveImageFromDocs(reader.GetString(0));
@@ -277,6 +280,7 @@ namespace GymRoutineGenerator.UI
                             {
                                 Name = reader.GetString(0),
                                 ImagePath = imagePath,
+                                VideoUrl = videoUrl,
                                 Source = "BD Secundaria (coincidencia parcial)"
                             };
                         }
@@ -522,6 +526,34 @@ namespace GymRoutineGenerator.UI
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error actualizando RutaImagen para {exerciseName}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el link de video de un ejercicio en la BD secundaria
+        /// </summary>
+        public bool UpdateVideoUrl(string exerciseName, string videoUrl)
+        {
+            try
+            {
+                using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+                connection.Open();
+
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    UPDATE Ejercicios
+                    SET LinkVideo = @video
+                    WHERE Nombre = @nombre COLLATE NOCASE";
+
+                cmd.Parameters.AddWithValue("@video", videoUrl ?? string.Empty);
+                cmd.Parameters.AddWithValue("@nombre", exerciseName);
+
+                return cmd.ExecuteNonQuery() > 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SecondaryExerciseDatabase] Error actualizando VideoUrl: {ex.Message}");
+                return false;
             }
         }
 

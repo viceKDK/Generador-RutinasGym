@@ -26,6 +26,9 @@ namespace GymRoutineGenerator.UI
 
             _connectionString = $"Data Source={dbPath};Version=3;";
             _exerciseColumns = LoadExerciseColumns();
+
+            // Asegurar que la columna VideoUrl exista
+            EnsureVideoUrlColumnExists();
         }
 
         private string? FindDatabasePath()
@@ -92,7 +95,7 @@ namespace GymRoutineGenerator.UI
                     connection.Open();
 
                     var query = @"
-                        SELECT e.Id, e.Name, e.SpanishName, ei.ImageData, ei.ImagePath, ei.Description
+                        SELECT e.Id, e.Name, e.SpanishName, ei.ImageData, ei.ImagePath, ei.Description, e.VideoUrl
                         FROM Exercises e
                         LEFT JOIN ExerciseImages ei ON e.Id = ei.ExerciseId
                         WHERE (e.Name LIKE @name OR e.SpanishName LIKE @name)
@@ -110,6 +113,8 @@ namespace GymRoutineGenerator.UI
                             {
                                 var imageData = reader["ImageData"] as byte[];
                                 var imagePath = reader["ImagePath"]?.ToString();
+                                var videoUrl = SafeGetString(reader, "VideoUrl");
+
                                 if (imageData != null || !string.IsNullOrWhiteSpace(imagePath))
                                 {
                                     return new ExerciseImageInfo
@@ -118,6 +123,7 @@ namespace GymRoutineGenerator.UI
                                         ImagePath = imagePath ?? string.Empty,
                                         ImageData = imageData,
                                         Description = reader["Description"]?.ToString() ?? string.Empty,
+                                        VideoUrl = videoUrl ?? string.Empty,
                                         Keywords = Array.Empty<string>(),
                                         MuscleGroups = Array.Empty<string>()
                                     };
@@ -166,6 +172,11 @@ namespace GymRoutineGenerator.UI
                         optionalSelect.Add("e.Source");
                     }
 
+                    if (_exerciseColumns.Contains("VideoUrl"))
+                    {
+                        optionalSelect.Add("e.VideoUrl");
+                    }
+
                     var query = $@"
                         SELECT e.Id, e.Name, e.SpanishName, e.Description, ei.ImageData, ei.ImagePath,
                                mg.SpanishName AS PrimaryMuscleGroup
@@ -188,6 +199,7 @@ namespace GymRoutineGenerator.UI
                             var primaryMuscleGroup = reader["PrimaryMuscleGroup"]?.ToString();
                             var instructions = SafeGetString(reader, "Instructions");
                             var source = SafeGetString(reader, "Source");
+                            var videoUrl = SafeGetString(reader, "VideoUrl");
 
                             var muscleGroups = new List<string>();
                             if (!string.IsNullOrWhiteSpace(primaryMuscleGroup))
@@ -201,6 +213,7 @@ namespace GymRoutineGenerator.UI
                                 ImagePath = imagePath ?? string.Empty,
                                 ImageData = imageData,
                                 Description = description,
+                                VideoUrl = videoUrl ?? string.Empty,
                                 Keywords = string.IsNullOrWhiteSpace(instructions)
                                     ? Array.Empty<string>()
                                     : instructions.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
@@ -321,7 +334,7 @@ namespace GymRoutineGenerator.UI
             }
         }
 
-        public bool UpdateExerciseDetails(string originalName, string newName, string description, string[] muscleGroups, string[] keywords, string source)
+        public bool UpdateExerciseDetails(string originalName, string newName, string description, string[] muscleGroups, string[] keywords, string source, string videoUrl)
         {
             try
             {
@@ -342,6 +355,7 @@ namespace GymRoutineGenerator.UI
                         var needsDescriptionParameter = false;
                         var needsInstructionsParameter = false;
                         var needsSourceParameter = false;
+                        var needsVideoUrlParameter = false;
                         var needsPrimaryMuscleParameter = false;
 
                         if (_exerciseColumns.Contains("Name"))
@@ -372,6 +386,12 @@ namespace GymRoutineGenerator.UI
                         {
                             updateParts.Add("Source = @source");
                             needsSourceParameter = true;
+                        }
+
+                        if (_exerciseColumns.Contains("VideoUrl"))
+                        {
+                            updateParts.Add("VideoUrl = @videoUrl");
+                            needsVideoUrlParameter = true;
                         }
 
                         int? primaryMuscleId = null;
@@ -413,6 +433,11 @@ namespace GymRoutineGenerator.UI
                                 if (needsSourceParameter)
                                 {
                                     command.Parameters.AddWithValue("@source", source ?? string.Empty);
+                                }
+
+                                if (needsVideoUrlParameter)
+                                {
+                                    command.Parameters.AddWithValue("@videoUrl", videoUrl ?? string.Empty);
                                 }
 
                                 if (needsPrimaryMuscleParameter && primaryMuscleId.HasValue)
@@ -576,6 +601,75 @@ namespace GymRoutineGenerator.UI
             catch (IndexOutOfRangeException)
             {
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el link de video de un ejercicio
+        /// </summary>
+        public bool UpdateVideoUrl(string exerciseName, string videoUrl)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+
+                    using (var cmd = connection.CreateCommand())
+                    {
+                        cmd.CommandText = @"
+                            UPDATE Exercises
+                            SET VideoUrl = @videoUrl
+                            WHERE Name = @name OR SpanishName = @name";
+
+                        cmd.Parameters.AddWithValue("@videoUrl", videoUrl ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@name", exerciseName);
+
+                        var rowsAffected = cmd.ExecuteNonQuery();
+                        return rowsAffected > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] Error actualizando VideoUrl: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void EnsureVideoUrlColumnExists()
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+
+                    var query = @"
+                        CREATE TABLE IF NOT EXISTS Exercises (
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            Name TEXT NOT NULL,
+                            SpanishName TEXT,
+                            Description TEXT,
+                            Instructions TEXT,
+                            PrimaryMuscleGroupId INTEGER,
+                            EquipmentTypeId INTEGER,
+                            DifficultyLevel INTEGER,
+                            ExerciseType INTEGER,
+                            IsActive INTEGER DEFAULT 1,
+                            CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            VideoUrl TEXT
+                        );";
+
+                    using (var command = new SQLiteCommand(query, connection))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLiteExerciseImageDatabase] EnsureVideoUrlColumnExists error: {ex.Message}");
             }
         }
     }

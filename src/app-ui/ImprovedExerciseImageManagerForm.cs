@@ -752,13 +752,16 @@ namespace GymRoutineGenerator.UI
                 }
             }
 
+            var videoUrl = string.Empty;
+
             var success = _imageDatabase.UpdateExerciseDetails(
                 _currentExercise.ExerciseName,
                 newName,
                 description,
                 muscles,
                 Array.Empty<string>(),
-                string.Empty);
+                string.Empty,
+                videoUrl);
 
             if (!success)
             {

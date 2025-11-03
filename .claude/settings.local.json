@@ -1,34 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(del \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\update_shortcut_temp.ps1\")",
-      "Bash(start \"\" \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\app-ui\\bin\\x64\\Debug\\net8.0-windows\\GeneradorRutinasGimnasio.exe\")",
-      "Bash(dotnet build:*)",
-      "Bash(powershell.exe:*)",
-      "Bash(taskkill:*)",
-      "Bash(start \"\" \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\src\\app-ui\\bin\\x64\\Release\\net8.0-windows\\GeneradorRutinasGimnasio.exe\")",
-      "Bash(start \"\" \"src/app-ui/bin/x64/Release/net8.0-windows/GeneradorRutinasGimnasio.exe\")",
-      "Bash(cscript.exe:*)",
-      "Bash(wscript.exe:*)",
-      "Bash(tasklist:*)",
-      "Bash(Where-Object {$_rocessName -eq 'GeneradorRutinasGimnasio'})",
-      "Read(//c/Users/vicen/OneDrive/Escritorio/**)",
-      "Bash(if [ -f \"src/app-ui/bin/x64/Release/net8.0-windows/GeneradorRutinasGimnasio.exe\" ])",
-      "Bash(then echo \"Ejecutable Release EXISTE\")",
-      "Bash(else echo \"Ejecutable Release NO EXISTE\")",
-      "Bash(fi)",
-      "Bash(if [ -f \"src/app-ui/bin/x64/Debug/net8.0-windows/GeneradorRutinasGimnasio.exe\" ])",
-      "Bash(then echo \"Ejecutable Debug EXISTE\")",
-      "Bash(else echo \"Ejecutable Debug NO EXISTE\")",
-      "Read(//c/Users/vicen/OneDrive/**)",
-      "Bash(cmd.exe //c \"C:\\Users\\vicen\\OneDrive\\Escritorio\\apps\\por hacer\\app generacion rutinas gym\\crear_acceso_directo.bat\")",
-      "Bash(icacls:*)",
-      "Bash(del \"update_shortcut_temp.ps1\")",
-      "Bash(then echo \"Ejecutable generado correctamente\")",
-      "Bash(else echo \"ERROR: No se generó el ejecutable\")",
-      "Bash(rm:*)",
-      "Bash(mv:*)",
-      "Bash(sqlite3:*)"
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(dotnet clean:*)"
     ],
     "deny": [],
     "ask": []

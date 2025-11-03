@@ -12,6 +12,8 @@ namespace GymRoutineGenerator.UI
         public string[] MuscleGroups { get; set; } = new string[0];
         public string Description { get; set; } = "";
         public string Source { get; set; } = "";  // Source of the image (BD Principal, BD Secundaria, etc.)
+        public string VideoUrl { get; set; } = "";  // Link opcional al video del ejercicio
         public DateTime DateAdded { get; set; } = DateTime.Now;
     }
 }
+
