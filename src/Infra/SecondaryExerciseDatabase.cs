@@ -7,8 +7,9 @@ using System.Text;
 using System.Globalization;
 using System.Threading;
 using System.Text.RegularExpressions;
+using GymRoutineGenerator.Domain;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Infrastructure
 {
     /// <summary>
     /// Base de datos secundaria de ejercicios poblada desde docs/ejercicios

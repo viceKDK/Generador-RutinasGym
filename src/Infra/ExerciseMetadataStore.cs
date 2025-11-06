@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using GymRoutineGenerator.Domain;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Infrastructure
 {
     public sealed class ExerciseMetadataStore
     {

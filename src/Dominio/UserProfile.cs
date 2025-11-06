@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GymRoutineGenerator.UI;
+namespace GymRoutineGenerator.Domain;
 
 /// <summary>
 /// Lightweight profile used by the WinForms UI to collect user preferences before

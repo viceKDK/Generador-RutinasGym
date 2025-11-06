@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GymRoutineGenerator.UI;
+namespace GymRoutineGenerator.Domain;
 
 public class Exercise
 {

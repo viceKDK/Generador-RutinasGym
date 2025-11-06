@@ -1,6 +1,6 @@
 using System;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Domain
 {
     public class ExerciseImageInfo
     {
@@ -16,4 +16,3 @@ namespace GymRoutineGenerator.UI
         public DateTime DateAdded { get; set; } = DateTime.Now;
     }
 }
-

@@ -1,4 +1,4 @@
-namespace GymRoutineGenerator.UI.Models
+namespace GymRoutineGenerator.Domain.Models
 {
     public enum ManualExerciseDataSource
     {

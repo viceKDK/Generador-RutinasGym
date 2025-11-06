@@ -5,8 +5,10 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using GymRoutineGenerator.Domain;
+using GymRoutineGenerator.Domain.Models;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Services
 {
     /// <summary>
     /// Servicio para generar rutinas usando Ollama + Mistral
@@ -782,8 +784,4 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
         public string Message { get; set; }
     }
 }
-
-
-
-
 

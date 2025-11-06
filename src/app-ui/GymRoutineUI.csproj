@@ -39,7 +39,11 @@
   </PropertyGroup>
 
   <!-- Referencias a proyectos de arquitectura -->
-  <!-- NOTA: Data tiene errores de compilación, por ahora app-ui usa SQLiteExerciseImageDatabase directamente -->
+  <ItemGroup>
+    <Compile Include="..\Dominio\**\*.cs" />
+    <Compile Include="..\Services\**\*.cs" />
+    <Compile Include="..\Infra\**\*.cs" />
+  </ItemGroup>
   <!--
   <ItemGroup>
     <ProjectReference Include="..\GymRoutineGenerator.Domain\GymRoutineGenerator.Domain.csproj" />
@@ -59,6 +63,6 @@
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
   </ItemGroup>
 
-  
+
 
 </Project>

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace GymRoutineGenerator.UI.Models
+namespace GymRoutineGenerator.Domain.Models
 {
     /// <summary>
     /// Represents an element stored in the manual selection panel of the gallery.

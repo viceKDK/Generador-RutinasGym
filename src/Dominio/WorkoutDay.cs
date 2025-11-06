@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace GymRoutineGenerator.UI;
+namespace GymRoutineGenerator.Domain;
 
 /// <summary>
 /// Represents a single training day with its exercises.

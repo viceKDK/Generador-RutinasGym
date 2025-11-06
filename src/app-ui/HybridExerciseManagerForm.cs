@@ -6,6 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
+using GymRoutineGenerator.Domain;
+using GymRoutineGenerator.Infrastructure;
+
 namespace GymRoutineGenerator.UI
 {
     /// <summary>
@@ -347,27 +350,46 @@ namespace GymRoutineGenerator.UI
             };
             refreshVideoButton.FlatAppearance.BorderSize = 0;
             refreshVideoButton.Click += (s, e) => LoadVideoInBrowser(_currentExercise?.VideoUrl);
+            // Mantener el botón anclado a la esquina superior derecha del panel de video.
             refreshVideoButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            refreshVideoButton.Location = new Point(videoPanel.Width - 50, 10); // will be repositioned by layout
+
+            // Posicionar correctamente aún cuando el panel cambie de tamaño.
+            videoPanel.SizeChanged += (s, e) =>
+            {
+                try
+                {
+                    // Recalcular la posición dentro del panel (10px de margen desde la derecha y arriba)
+                    refreshVideoButton.Location = new Point(Math.Max(10, videoPanel.ClientSize.Width - refreshVideoButton.Width - 10), 10);
+                    refreshVideoButton.BringToFront();
+                }
+                catch { /* tolerar excepciones de layout durante inicialización */ }
+            };
 
             videoPanel.Controls.Add(videoWebBrowser);
             videoPanel.Controls.Add(refreshVideoButton);
             layout.Controls.Add(videoPanel, 0, 4);
+            // Asegurar z-order: traer al frente inmediatamente y cuando cambie visibilidad o tamaño del contenedor
+            try { videoPanel.BringToFront(); videoLabel.BringToFront(); } catch { }
+            videoPanel.VisibleChanged += (s, e) => { try { if (videoPanel.Visible) { videoPanel.BringToFront(); videoLabel.BringToFront(); } } catch { } };
+            // Cuando el contenedor cambie de tamaño (scrollContainer/layout), asegurar el panel en primer plano
+            scrollContainer.SizeChanged += (s, e) => { try { if (videoPanel.Visible) videoPanel.BringToFront(); } catch { } };
+            layout.Controls.Add(videoPanel, 0, 4);
 
             // Botón cambiar imagen (ahora después del video)
             changeImageButton = CreateButton("Cambiar imagen", Color.FromArgb(13, 110, 253), Color.White);
-            changeImageButton.Dock = DockStyle.Fill;
-            changeImageButton.Height = 32;
-            changeImageButton.Margin = new Padding(0, 8, 0, 2);
+            // No usar Fill para que no ocupe espacio extra y potencialmente solape el panel de video.
+            changeImageButton.Dock = DockStyle.Top;
+            changeImageButton.Height = 36;
+            changeImageButton.Margin = new Padding(0, 8, 0, 6);
             changeImageButton.Click += (s, e) => ImportImageFromDisk();
             changeImageButton.Enabled = false;
             layout.Controls.Add(changeImageButton, 0, 5);
 
             // Botón abrir carpeta (ahora después del video)
             openFolderButton = CreateButton("Abrir carpeta de imágenes", Color.FromArgb(108, 117, 125), Color.White);
-            openFolderButton.Dock = DockStyle.Fill;
-            openFolderButton.Height = 32;
-            openFolderButton.Margin = new Padding(0, 2, 0, 4);
+            openFolderButton.Dock = DockStyle.Top;
+            openFolderButton.Height = 36;
+            openFolderButton.Margin = new Padding(0, 2, 0, 8);
             openFolderButton.Click += (s, e) => OpenImageFolder();
             openFolderButton.Enabled = false;
             layout.Controls.Add(openFolderButton, 0, 6);
@@ -856,6 +878,9 @@ namespace GymRoutineGenerator.UI
                 videoLabel.Visible = true;
                 videoPanel.Visible = true;
                 LoadVideoInBrowser(exercise.VideoUrl);
+                // Asegurar que el panel de video quede encima de otros controles y visible
+                try { videoPanel.BringToFront(); videoLabel.BringToFront(); }
+                catch { }
             }
             else
             {
@@ -1348,4 +1373,3 @@ namespace GymRoutineGenerator.UI
         #endregion
     }
 }
-

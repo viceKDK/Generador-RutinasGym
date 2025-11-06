@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Infrastructure
 {
     public class AutomaticImageFinder
     {

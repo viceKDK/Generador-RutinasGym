@@ -13,6 +13,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+// Añadidos: referencias a los namespaces movidos
+using GymRoutineGenerator.Domain;
+using Models = GymRoutineGenerator.Domain.Models;
+using GymRoutineGenerator.Services;
+using GymRoutineGenerator.Infrastructure;
+
 namespace GymRoutineGenerator.UI
 {
     public partial class MainForm : Form
@@ -43,7 +49,7 @@ namespace GymRoutineGenerator.UI
         private readonly SQLiteExerciseImageDatabase imageDatabase = new SQLiteExerciseImageDatabase();
         private List<WorkoutDay> lastGeneratedPlan = new List<WorkoutDay>();
         private readonly OllamaRoutineService ollamaService = new OllamaRoutineService();
-        private readonly ManualExerciseSelectionStore manualSelectionStore = new();
+        private readonly ManualExerciseSelectionStore manualSelectionStore = new ManualExerciseSelectionStore(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "manual_selection.json"));
 
         // Modern UI Controls
         private ModernCard personalInfoCard;
@@ -1586,5 +1592,4 @@ namespace GymRoutineGenerator.UI
         }
     }
 }
-        
 

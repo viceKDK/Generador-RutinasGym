@@ -12,10 +12,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
-using GymRoutineGenerator.UI.Models;
+using GymRoutineGenerator.Domain.Models;
 using System.Runtime.InteropServices;
+using GymRoutineGenerator.Infrastructure;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Services
 {
     /// <summary>
     /// Provides manual lookup helpers for the exercise gallery, wrapping the existing

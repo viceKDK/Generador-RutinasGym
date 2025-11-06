@@ -6,8 +6,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using GymRoutineGenerator.Domain;
+using GymRoutineGenerator.Domain.Models;
+using GymRoutineGenerator.Infrastructure;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Services
 {
     /// <summary>
     /// Resolves exercises and associated images by combining the primary SQLite database,
@@ -16,7 +19,7 @@ namespace GymRoutineGenerator.UI
     /// </summary>
     public class ExerciseImageSearchService
     {
-        public GymRoutineGenerator.UI.Models.ManualExerciseDataSource PreferredSource { get; set; } = GymRoutineGenerator.UI.Models.ManualExerciseDataSource.Primary;
+        public ManualExerciseDataSource PreferredSource { get; set; } = ManualExerciseDataSource.Primary;
         private readonly SQLiteExerciseImageDatabase _primaryDatabase;
         private readonly SecondaryExerciseDatabase _secondaryDatabase;
         private readonly AutomaticImageFinder _automaticFinder;
@@ -61,7 +64,7 @@ namespace GymRoutineGenerator.UI
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // Primaria
-            if (PreferredSource != GymRoutineGenerator.UI.Models.ManualExerciseDataSource.Secondary)
+            if (PreferredSource != ManualExerciseDataSource.Secondary)
             {
                 foreach (var exercise in _primaryExercises)
                 {
@@ -76,7 +79,7 @@ namespace GymRoutineGenerator.UI
             }
 
             // Secundaria
-            if (PreferredSource != GymRoutineGenerator.UI.Models.ManualExerciseDataSource.Primary)
+            if (PreferredSource != ManualExerciseDataSource.Primary)
             {
                 foreach (var term in GetMuscleGroupSearchTerms(canonical))
                 {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace GymRoutineGenerator.UI.Models
+namespace GymRoutineGenerator.Domain.Models
 {
     /// <summary>
     /// Lightweight DTO exposed to the gallery UI so it does not depend on the

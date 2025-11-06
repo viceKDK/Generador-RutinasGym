@@ -9,7 +9,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using GymRoutineGenerator.UI.Models;
+using GymRoutineGenerator.Domain.Models;
+using GymRoutineGenerator.Domain;
+using GymRoutineGenerator.Services;
+using GymRoutineGenerator.Infrastructure;
 using Timer = System.Windows.Forms.Timer;
 
 namespace GymRoutineGenerator.UI
@@ -878,4 +881,3 @@ namespace GymRoutineGenerator.UI
         public static extern bool DeleteObject(IntPtr hObject);
     }
 }
-

@@ -3,8 +3,13 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Globalization;
+using System.Threading;
+using System.Text.RegularExpressions;
+using GymRoutineGenerator.Domain;
 
-namespace GymRoutineGenerator.UI
+namespace GymRoutineGenerator.Infrastructure
 {
     /// <summary>
     /// Database handler for exercise images using SQLite.
