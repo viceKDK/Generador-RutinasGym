@@ -593,7 +593,7 @@ namespace GymRoutineGenerator.UI
         {
             personalInfoCard = new ModernCard
             {
-                Title = "📋 Información Personal",
+                Title = "Información Personal",
                 Size = new Size(480, 210),
                 CardColor = Color.White,
                 BorderRadius = 12,
@@ -602,7 +602,7 @@ namespace GymRoutineGenerator.UI
 
             trainingCard = new ModernCard
             {
-                Title = "💪 Preferencias de Entrenamiento",
+                Title = "Preferencias de Entrenamiento",
                 Size = new Size(480, 190),
                 CardColor = Color.White,
                 BorderRadius = 12,
@@ -611,7 +611,7 @@ namespace GymRoutineGenerator.UI
 
             goalsCard = new ModernCard
             {
-                Title = "🎯 Objetivos de Entrenamiento",
+                Title = "Objetivos de Entrenamiento",
                 Size = new Size(480, 240),
                 CardColor = Color.White,
                 BorderRadius = 12,
@@ -620,7 +620,7 @@ namespace GymRoutineGenerator.UI
 
             routineCard = new ModernCard
             {
-                Title = "📝 Rutina Generada",
+                Title = "Rutina Generada",
                 Size = new Size(500, 600),
                 CardColor = Color.White,
                 BorderRadius = 12,

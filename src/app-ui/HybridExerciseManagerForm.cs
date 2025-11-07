@@ -186,7 +186,7 @@ namespace GymRoutineGenerator.UI
 
         private Control BuildListColumn()
         {
-            var card = CreateCard("🏋️ Ejercicios");
+            var card = CreateCard("Ejercicios");
 
             var layout = new TableLayoutPanel
             {
@@ -204,7 +204,7 @@ namespace GymRoutineGenerator.UI
             searchBox = new TextBox
             {
                 Dock = DockStyle.Fill,
-                PlaceholderText = "🔍 Buscar ejercicio...",
+                PlaceholderText = "Buscar ejercicio...",
                 Font = new Font("Segoe UI", 11F),
                 Height = 38,
                 Margin = new Padding(0, 6, 0, 8),
@@ -229,13 +229,13 @@ namespace GymRoutineGenerator.UI
             layout.Controls.Add(exerciseListBox, 0, 1);
 
             // Botón nuevo
-            newExerciseButton = CreateButton("➕ Nuevo ejercicio", Color.FromArgb(25, 135, 84), Color.White);
+            newExerciseButton = CreateButton("Nuevo ejercicio", Color.FromArgb(25, 135, 84), Color.White);
             newExerciseButton.Click += (s, e) => CreateNewExercise();
             newExerciseButton.Margin = new Padding(0, 0, 0, 8);
             layout.Controls.Add(newExerciseButton, 0, 2);
 
             // Botón eliminar
-            deleteExerciseButton = CreateButton("🗑️ Eliminar", Color.FromArgb(220, 53, 69), Color.White);
+            deleteExerciseButton = CreateButton("Eliminar", Color.FromArgb(220, 53, 69), Color.White);
             deleteExerciseButton.Click += (s, e) => DeleteCurrentExercise();
             deleteExerciseButton.Enabled = false;
             deleteExerciseButton.Margin = new Padding(0, 0, 0, 0);
@@ -247,7 +247,7 @@ namespace GymRoutineGenerator.UI
 
         private Control BuildPreviewColumn()
         {
-            var card = CreateCard("👁️ Vista Previa");
+            var card = CreateCard("Vista Previa");
 
             // Panel con scroll para evitar que los componentes se escondan
             var scrollContainer = new Panel
@@ -314,7 +314,7 @@ namespace GymRoutineGenerator.UI
             // NUEVO: Label "Video"
             videoLabel = new Label
             {
-                Text = "🎥 Video del ejercicio",
+                Text = "Video del ejercicio",
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(33, 37, 41),
                 Dock = DockStyle.Fill,
@@ -382,7 +382,7 @@ namespace GymRoutineGenerator.UI
             layout.Controls.Add(videoPanel, 0, 4);
 
             // Botón cambiar imagen (ahora después del video)
-            changeImageButton = CreateButton("📁 Cambiar imagen", Color.FromArgb(13, 110, 253), Color.White);
+            changeImageButton = CreateButton("Cambiar imagen", Color.FromArgb(13, 110, 253), Color.White);
             // No usar Fill para que no ocupe espacio extra y potencialmente solape el panel de video.
             changeImageButton.Dock = DockStyle.Top;
             changeImageButton.Height = 42;
@@ -392,7 +392,7 @@ namespace GymRoutineGenerator.UI
             layout.Controls.Add(changeImageButton, 0, 5);
 
             // Botón abrir carpeta (ahora después del video)
-            openFolderButton = CreateButton("📂 Abrir carpeta", Color.FromArgb(108, 117, 125), Color.White);
+            openFolderButton = CreateButton("Abrir carpeta", Color.FromArgb(108, 117, 125), Color.White);
             openFolderButton.Dock = DockStyle.Top;
             openFolderButton.Height = 42;
             openFolderButton.Margin = new Padding(0, 2, 0, 12);
@@ -411,7 +411,7 @@ namespace GymRoutineGenerator.UI
         private Control BuildEditColumn()
         {
             // EDITOR AVANZADO con secciones colapsables (como ImprovedForm)
-            var card = CreateCard("✏️ Edición");
+            var card = CreateCard("Edición");
 
             var scrollPanel = new Panel
             {
@@ -536,7 +536,7 @@ namespace GymRoutineGenerator.UI
             videoContentPanel.Controls.Add(editVideoUrlTextBox);
 
             // Botón para abrir video en navegador
-            openVideoButton = CreateButton("🌐 Abrir en navegador", Color.FromArgb(13, 110, 253), Color.White);
+            openVideoButton = CreateButton("Abrir en navegador", Color.FromArgb(13, 110, 253), Color.White);
             openVideoButton.Dock = DockStyle.Top;
             openVideoButton.Height = 38;
             openVideoButton.Margin = new Padding(0, 6, 0, 12);
@@ -556,7 +556,7 @@ namespace GymRoutineGenerator.UI
                 Margin = new Padding(0, 12, 0, 0)
             };
 
-            saveButton = CreateButton("💾 Guardar cambios", Color.FromArgb(25, 135, 84), Color.White);
+            saveButton = CreateButton("Guardar cambios", Color.FromArgb(25, 135, 84), Color.White);
             saveButton.Click += (s, e) => SaveCurrentExercise();
             saveButton.Enabled = false;
             saveButton.Width = 180;
@@ -564,7 +564,7 @@ namespace GymRoutineGenerator.UI
             saveButton.Margin = new Padding(0, 0, 8, 0);
             buttonsPanel.Controls.Add(saveButton);
 
-            cancelButton = CreateButton("❌ Cancelar", Color.FromArgb(108, 117, 125), Color.White);
+            cancelButton = CreateButton("Cancelar", Color.FromArgb(108, 117, 125), Color.White);
             cancelButton.Click += (s, e) => CancelEdit();
             cancelButton.Enabled = false;
             cancelButton.Width = 140;
