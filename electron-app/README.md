@@ -23,6 +23,8 @@ Aplicación de escritorio multiplataforma para generar rutinas de gimnasio perso
 
 ## Instalación
 
+### Instalación Normal
+
 ```bash
 # Instalar dependencias
 npm install
@@ -33,6 +35,37 @@ npm run electron:dev
 # Build de producción
 npm run electron:build
 ```
+
+### ⚠️ Problemas con la Instalación de Electron
+
+Si ves este error:
+```
+Error: Electron failed to install correctly, please delete node_modules/electron and try installing again
+```
+
+**Solución rápida (PowerShell/CMD en Windows):**
+
+```powershell
+# 1. Limpiar instalación corrupta
+Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+
+# 2. Reinstalar con mirror alternativo
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+npm install
+```
+
+**O usando los scripts incluidos:**
+
+```bash
+# Reinstalar desde cero
+npm run reinstall
+
+# Verificar instalación correcta
+npm run verify
+```
+
+**Para más soluciones detalladas, ver: `SOLUCION-INSTALACION-ELECTRON.md`**
 
 ## Requisitos
 
@@ -59,11 +92,19 @@ electron-app/
 
 ## Scripts Disponibles
 
+### Desarrollo
 - `npm run dev` - Inicia Vite dev server
 - `npm run electron:dev` - Inicia app Electron en modo desarrollo
-- `npm run build` - Build de producción
-- `npm run electron:build` - Build y empaqueta app Electron
 - `npm run type-check` - Verificación de tipos TypeScript
+
+### Build
+- `npm run build` - Build de producción completo
+- `npm run electron:build` - Build y empaqueta app Electron
+
+### Utilidades
+- `npm run verify` - Verifica que Electron está instalado correctamente
+- `npm run clean` - Limpia node_modules y archivos generados
+- `npm run reinstall` - Reinstala dependencias desde cero
 
 ## Configuración de Ollama
 
