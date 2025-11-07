@@ -132,7 +132,7 @@ namespace GymRoutineGenerator.UI
             StartPosition = FormStartPosition.CenterScreen;
             ShowInTaskbar = false;
             WindowState = FormWindowState.Maximized;
-            BackColor = Color.FromArgb(248, 249, 250);
+            BackColor = Color.FromArgb(240, 242, 247);  // Mismo fondo que MainForm
             Font = new Font("Segoe UI", 10F);
 
             // Atajo: ESC para volver
@@ -148,15 +148,15 @@ namespace GymRoutineGenerator.UI
 
             _placeholderImage = CreatePlaceholderImage();
 
-            // Layout principal - 3 columnas
+            // Layout principal - 3 columnas con mejor espaciado
             var mainLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 3,
                 RowCount = 1,
-                Padding = new Padding(12)
+                Padding = new Padding(20, 16, 20, 16)
             };
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 380));  // Lista
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 400));  // Lista
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));    // Preview
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));    // Edición
 
@@ -186,28 +186,29 @@ namespace GymRoutineGenerator.UI
 
         private Control BuildListColumn()
         {
-            var card = CreateCard("Ejercicios");
+            var card = CreateCard("🏋️ Ejercicios");
 
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RowCount = 4,
                 ColumnCount = 1,
-                Padding = new Padding(8, 8, 8, 8)
+                Padding = new Padding(16, 12, 16, 16)
             };
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));  // Búsqueda (altura fija)
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));  // Búsqueda (altura fija)
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // Lista
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));  // Botón nuevo (altura fija)
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));  // Botón eliminar (altura fija)
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));  // Botón nuevo (altura fija)
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));  // Botón eliminar (altura fija)
 
             // Búsqueda de ejercicios
             searchBox = new TextBox
             {
                 Dock = DockStyle.Fill,
-                PlaceholderText = "Buscar ejercicio...",
+                PlaceholderText = "🔍 Buscar ejercicio...",
                 Font = new Font("Segoe UI", 11F),
-                Height = 35,
-                Margin = new Padding(0, 4, 0, 4)
+                Height = 38,
+                Margin = new Padding(0, 6, 0, 8),
+                BorderStyle = BorderStyle.FixedSingle
             };
             searchBox.TextChanged += (s, e) => FilterExercises();
             layout.Controls.Add(searchBox, 0, 0);
@@ -218,21 +219,26 @@ namespace GymRoutineGenerator.UI
                 Dock = DockStyle.Fill,
                 BorderStyle = BorderStyle.FixedSingle,
                 IntegralHeight = false,
-                Font = new Font("Segoe UI", 10F),
-                DisplayMember = "ExerciseName"
+                Font = new Font("Segoe UI", 10.5F),
+                DisplayMember = "ExerciseName",
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(33, 37, 41),
+                Margin = new Padding(0, 0, 0, 8)
             };
             exerciseListBox.SelectedIndexChanged += ExerciseListBox_SelectedIndexChanged;
             layout.Controls.Add(exerciseListBox, 0, 1);
 
             // Botón nuevo
-            newExerciseButton = CreateButton("Nuevo ejercicio", Color.FromArgb(40, 167, 69), Color.White);
+            newExerciseButton = CreateButton("➕ Nuevo ejercicio", Color.FromArgb(25, 135, 84), Color.White);
             newExerciseButton.Click += (s, e) => CreateNewExercise();
+            newExerciseButton.Margin = new Padding(0, 0, 0, 8);
             layout.Controls.Add(newExerciseButton, 0, 2);
 
             // Botón eliminar
-            deleteExerciseButton = CreateButton("Eliminar", Color.FromArgb(220, 53, 69), Color.White);
+            deleteExerciseButton = CreateButton("🗑️ Eliminar", Color.FromArgb(220, 53, 69), Color.White);
             deleteExerciseButton.Click += (s, e) => DeleteCurrentExercise();
             deleteExerciseButton.Enabled = false;
+            deleteExerciseButton.Margin = new Padding(0, 0, 0, 0);
             layout.Controls.Add(deleteExerciseButton, 0, 3);
 
             card.Controls.Add(layout, 0, 1);  // Agregar al row 1 (contenido)
@@ -241,7 +247,7 @@ namespace GymRoutineGenerator.UI
 
         private Control BuildPreviewColumn()
         {
-            var card = CreateCard("Vista Previa");
+            var card = CreateCard("👁️ Vista Previa");
 
             // Panel con scroll para evitar que los componentes se escondan
             var scrollContainer = new Panel
@@ -308,12 +314,12 @@ namespace GymRoutineGenerator.UI
             // NUEVO: Label "Video"
             videoLabel = new Label
             {
-                Text = "Video del ejercicio",
+                Text = "🎥 Video del ejercicio",
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(33, 37, 41),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(0, 6, 0, 4),
+                Padding = new Padding(0, 10, 0, 6),
                 Visible = false  // Oculto por defecto
             };
             layout.Controls.Add(videoLabel, 0, 3);
@@ -376,20 +382,20 @@ namespace GymRoutineGenerator.UI
             layout.Controls.Add(videoPanel, 0, 4);
 
             // Botón cambiar imagen (ahora después del video)
-            changeImageButton = CreateButton("Cambiar imagen", Color.FromArgb(13, 110, 253), Color.White);
+            changeImageButton = CreateButton("📁 Cambiar imagen", Color.FromArgb(13, 110, 253), Color.White);
             // No usar Fill para que no ocupe espacio extra y potencialmente solape el panel de video.
             changeImageButton.Dock = DockStyle.Top;
-            changeImageButton.Height = 36;
-            changeImageButton.Margin = new Padding(0, 8, 0, 6);
+            changeImageButton.Height = 42;
+            changeImageButton.Margin = new Padding(0, 12, 0, 6);
             changeImageButton.Click += (s, e) => ImportImageFromDisk();
             changeImageButton.Enabled = false;
             layout.Controls.Add(changeImageButton, 0, 5);
 
             // Botón abrir carpeta (ahora después del video)
-            openFolderButton = CreateButton("Abrir carpeta de imágenes", Color.FromArgb(108, 117, 125), Color.White);
+            openFolderButton = CreateButton("📂 Abrir carpeta", Color.FromArgb(108, 117, 125), Color.White);
             openFolderButton.Dock = DockStyle.Top;
-            openFolderButton.Height = 36;
-            openFolderButton.Margin = new Padding(0, 2, 0, 8);
+            openFolderButton.Height = 42;
+            openFolderButton.Margin = new Padding(0, 2, 0, 12);
             openFolderButton.Click += (s, e) => OpenImageFolder();
             openFolderButton.Enabled = false;
             layout.Controls.Add(openFolderButton, 0, 6);
@@ -405,7 +411,7 @@ namespace GymRoutineGenerator.UI
         private Control BuildEditColumn()
         {
             // EDITOR AVANZADO con secciones colapsables (como ImprovedForm)
-            var card = CreateCard("Edición");
+            var card = CreateCard("✏️ Edición");
 
             var scrollPanel = new Panel
             {
@@ -530,10 +536,10 @@ namespace GymRoutineGenerator.UI
             videoContentPanel.Controls.Add(editVideoUrlTextBox);
 
             // Botón para abrir video en navegador
-            openVideoButton = CreateButton("Abrir video en navegador", Color.FromArgb(13, 110, 253), Color.White);
+            openVideoButton = CreateButton("🌐 Abrir en navegador", Color.FromArgb(13, 110, 253), Color.White);
             openVideoButton.Dock = DockStyle.Top;
-            openVideoButton.Height = 36;
-            openVideoButton.Margin = new Padding(0, 4, 0, 12);
+            openVideoButton.Height = 38;
+            openVideoButton.Margin = new Padding(0, 6, 0, 12);
             openVideoButton.Click += (s, e) => OpenVideoButton_Click();
             videoContentPanel.Controls.Add(openVideoButton);
 
@@ -550,14 +556,19 @@ namespace GymRoutineGenerator.UI
                 Margin = new Padding(0, 12, 0, 0)
             };
 
-            saveButton = CreateButton("Guardar cambios", Color.FromArgb(25, 135, 84), Color.White);
+            saveButton = CreateButton("💾 Guardar cambios", Color.FromArgb(25, 135, 84), Color.White);
             saveButton.Click += (s, e) => SaveCurrentExercise();
             saveButton.Enabled = false;
+            saveButton.Width = 180;
+            saveButton.Height = 42;
+            saveButton.Margin = new Padding(0, 0, 8, 0);
             buttonsPanel.Controls.Add(saveButton);
 
-            cancelButton = CreateButton("Cancelar", Color.FromArgb(108, 117, 125), Color.White);
+            cancelButton = CreateButton("❌ Cancelar", Color.FromArgb(108, 117, 125), Color.White);
             cancelButton.Click += (s, e) => CancelEdit();
             cancelButton.Enabled = false;
+            cancelButton.Width = 140;
+            cancelButton.Height = 42;
             buttonsPanel.Controls.Add(cancelButton);
 
             layout.Controls.Add(buttonsPanel, 0, layout.RowCount - 1);
@@ -625,24 +636,53 @@ namespace GymRoutineGenerator.UI
 
         private TableLayoutPanel CreateCard(string title)
         {
-            // Crear container principal con 2 rows: título + contenido
+            // Crear container principal con 2 rows: título + contenido (estilo unificado con MainForm)
             var container = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(6),
+                BorderStyle = BorderStyle.None,
+                Margin = new Padding(8, 6, 8, 6),
                 Padding = new Padding(0),
                 ColumnCount = 1,
                 RowCount = 2
             };
-            container.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));  // Row 0: Título (45px fijo)
+
+            // Agregar sombra sutil con Paint
+            container.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                // Sombra
+                using (var shadowBrush = new SolidBrush(Color.FromArgb(15, 0, 0, 0)))
+                {
+                    var shadowRect = new Rectangle(3, 3, container.Width - 3, container.Height - 3);
+                    g.FillRectangle(shadowBrush, shadowRect);
+                }
+
+                // Fondo blanco
+                using (var bgBrush = new SolidBrush(Color.White))
+                {
+                    var bgRect = new Rectangle(0, 0, container.Width - 3, container.Height - 3);
+                    g.FillRectangle(bgBrush, bgRect);
+                }
+
+                // Borde sutil
+                using (var borderPen = new Pen(Color.FromArgb(30, 0, 0, 0), 1))
+                {
+                    var borderRect = new Rectangle(0, 0, container.Width - 4, container.Height - 4);
+                    g.DrawRectangle(borderPen, borderRect);
+                }
+            };
+
+            container.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));  // Row 0: Título (50px fijo)
             container.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // Row 1: Contenido (resto del espacio)
 
             var titleBar = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(233, 236, 239)
+                BackColor = Color.FromArgb(245, 247, 250)
             };
 
             var titleLabel = new Label
@@ -652,7 +692,7 @@ namespace GymRoutineGenerator.UI
                 ForeColor = Color.FromArgb(33, 37, 41),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(12, 0, 0, 0)
+                Padding = new Padding(20, 0, 0, 0)
             };
 
             titleBar.Controls.Add(titleLabel);
@@ -667,15 +707,34 @@ namespace GymRoutineGenerator.UI
             {
                 Text = text,
                 Dock = DockStyle.Fill,
-                Height = 40,
+                Height = 44,
                 BackColor = backColor,
                 ForeColor = foreColor,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 Margin = new Padding(0, 6, 0, 0),
                 Cursor = Cursors.Hand
             };
             button.FlatAppearance.BorderSize = 0;
+
+            // Efectos hover para consistencia
+            button.MouseEnter += (s, e) =>
+            {
+                var btn = s as Button;
+                if (btn != null && btn.Enabled)
+                {
+                    btn.BackColor = ControlPaint.Dark(backColor, 0.1f);
+                }
+            };
+            button.MouseLeave += (s, e) =>
+            {
+                var btn = s as Button;
+                if (btn != null)
+                {
+                    btn.BackColor = backColor;
+                }
+            };
+
             return button;
         }
 
@@ -709,17 +768,29 @@ namespace GymRoutineGenerator.UI
             {
                 Text = text,
                 Dock = DockStyle.Top,
-                Height = 32,
-                BackColor = Color.FromArgb(248, 249, 250),
+                Height = 36,
+                BackColor = Color.FromArgb(245, 247, 250),
                 ForeColor = Color.FromArgb(52, 58, 64),
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
-                Margin = new Padding(0, 4, 0, 4),
+                Padding = new Padding(8, 0, 0, 0),
+                Margin = new Padding(0, 6, 0, 4),
                 Cursor = Cursors.Hand
             };
             button.FlatAppearance.BorderSize = 1;
             button.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+
+            // Efectos hover
+            button.MouseEnter += (s, e) =>
+            {
+                button.BackColor = Color.FromArgb(233, 236, 239);
+            };
+            button.MouseLeave += (s, e) =>
+            {
+                button.BackColor = Color.FromArgb(245, 247, 250);
+            };
+
             return button;
         }
 

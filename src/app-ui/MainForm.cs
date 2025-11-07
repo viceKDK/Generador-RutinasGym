@@ -447,10 +447,10 @@ namespace GymRoutineGenerator.UI
         private void LayoutControls()
         {
             // Enhanced responsive layout with modern card-based design
-            int leftMargin = 10;
-            int rightMargin = Math.Max(this.Width / 2 + 20, 500);
-            int topMargin = menuStrip?.Height ?? 25;
-            int cardSpacing = 20;
+            int leftMargin = 20;
+            int rightMargin = Math.Max(this.Width / 2 + 30, 520);
+            int topMargin = (menuStrip?.Height ?? 25) + 10;
+            int cardSpacing = 16;
             int bottomMargin = statusStrip?.Height ?? 25;
 
             // Position modern cards
@@ -458,68 +458,68 @@ namespace GymRoutineGenerator.UI
 
             // Position controls within personal info card
             var nameLabel = CreateModernLabel("Nombre:");
-            nameLabel.Location = new Point(20, 60);
-            nameTextBox.Location = new Point(100, 57);
+            nameLabel.Location = new Point(24, 62);
+            nameTextBox.Location = new Point(110, 59);
             personalInfoCard.Controls.Add(nameLabel);
 
             var ageLabel = CreateModernLabel("Edad:");
-            ageLabel.Location = new Point(20, 105);
-            ageNumericUpDown.Location = new Point(100, 102);
+            ageLabel.Location = new Point(24, 109);
+            ageNumericUpDown.Location = new Point(110, 106);
             personalInfoCard.Controls.Add(ageLabel);
 
             var genderLabel = CreateModernLabel("Género:");
-            genderLabel.Location = new Point(20, 150);
-            genderComboBox.Location = new Point(100, 147);
+            genderLabel.Location = new Point(24, 156);
+            genderComboBox.Location = new Point(110, 153);
             personalInfoCard.Controls.Add(genderLabel);
 
             // Training card
             trainingCard.Location = new Point(leftMargin, personalInfoCard.Bottom + cardSpacing);
 
             var fitnessLabel = CreateModernLabel("Nivel:");
-            fitnessLabel.Location = new Point(20, 60);
-            fitnessLevelComboBox.Location = new Point(100, 57);
+            fitnessLabel.Location = new Point(24, 62);
+            fitnessLevelComboBox.Location = new Point(110, 59);
             trainingCard.Controls.Add(fitnessLabel);
 
             var daysLabel = CreateModernLabel("Días/semana:");
-            daysLabel.Location = new Point(20, 105);
-            trainingDaysTrackBar.Location = new Point(120, 102);
-            if (trainingDaysComboBox != null) trainingDaysComboBox.Location = new Point(180, 102);
-            trainingDaysLabel.Location = new Point(20, 135);
+            daysLabel.Location = new Point(24, 109);
+            trainingDaysTrackBar.Location = new Point(130, 106);
+            if (trainingDaysComboBox != null) trainingDaysComboBox.Location = new Point(190, 106);
+            trainingDaysLabel.Location = new Point(24, 142);
             trainingCard.Controls.Add(daysLabel);
 
             // Goals card
             goalsCard.Location = new Point(leftMargin, trainingCard.Bottom + cardSpacing);
-            goalsCheckedListBox.Location = new Point(20, 60);
+            goalsCheckedListBox.Location = new Point(24, 62);
             if (dataSourceButton != null)
             {
-                dataSourceButton.Location = new Point(20, goalsCheckedListBox.Bottom + 10);
+                dataSourceButton.Location = new Point(24, goalsCheckedListBox.Bottom + 12);
             }
 
-            // Buttons with improved layout
-            int buttonsTop = goalsCard.Bottom + cardSpacing;
+            // Buttons with improved layout and spacing
+            int buttonsTop = goalsCard.Bottom + cardSpacing + 8;
             generateButton.Location = new Point(leftMargin, buttonsTop);
-            previewButton.Location = new Point(leftMargin + 220, buttonsTop);
-            exportButton.Location = new Point(leftMargin, buttonsTop + 70);
-            exportToPDFButton.Location = new Point(leftMargin + 220, buttonsTop + 70);
+            previewButton.Location = new Point(leftMargin + 230, buttonsTop);
+            exportButton.Location = new Point(leftMargin, buttonsTop + 72);
+            exportToPDFButton.Location = new Point(leftMargin + 230, buttonsTop + 72);
 
             // Status with better positioning
-            statusLabel.Location = new Point(leftMargin, buttonsTop + 150);
-            progressBar.Location = new Point(leftMargin, buttonsTop + 175);
+            statusLabel.Location = new Point(leftMargin, buttonsTop + 158);
+            progressBar.Location = new Point(leftMargin, buttonsTop + 185);
 
             // Right Column - Routine Display card
             routineCard.Location = new Point(rightMargin, topMargin + 20);
 
             // Adjust routine card size for better responsiveness
-            int availableWidth = this.Width - rightMargin - 50;
-            int availableHeight = this.Height - (topMargin + bottomMargin + 100);
+            int availableWidth = this.Width - rightMargin - 60;
+            int availableHeight = this.Height - (topMargin + bottomMargin + 110);
 
-            if (availableWidth > 400 && availableHeight > 400)
+            if (availableWidth > 420 && availableHeight > 420)
             {
                 routineCard.Size = new Size(availableWidth, availableHeight);
-                routineDisplayTextBox.Size = new Size(availableWidth - 40, availableHeight - 80);
+                routineDisplayTextBox.Size = new Size(availableWidth - 48, availableHeight - 88);
             }
 
-            routineDisplayTextBox.Location = new Point(20, 60);
+            routineDisplayTextBox.Location = new Point(24, 62);
         }
 
         private Label CreateModernLabel(string text)
@@ -593,30 +593,38 @@ namespace GymRoutineGenerator.UI
         {
             personalInfoCard = new ModernCard
             {
-                Title = "Información Personal",
-                Size = new Size(456, 200),
-                CardColor = Color.White
+                Title = "📋 Información Personal",
+                Size = new Size(480, 210),
+                CardColor = Color.White,
+                BorderRadius = 12,
+                ShadowOffset = 3
             };
 
             trainingCard = new ModernCard
             {
-                Title = "Preferencias de Entrenamiento",
-                Size = new Size(456, 180),
-                CardColor = Color.White
+                Title = "💪 Preferencias de Entrenamiento",
+                Size = new Size(480, 190),
+                CardColor = Color.White,
+                BorderRadius = 12,
+                ShadowOffset = 3
             };
 
             goalsCard = new ModernCard
             {
-                Title = "Objetivos de Entrenamiento",
-                Size = new Size(456, 220),
-                CardColor = Color.White
+                Title = "🎯 Objetivos de Entrenamiento",
+                Size = new Size(480, 240),
+                CardColor = Color.White,
+                BorderRadius = 12,
+                ShadowOffset = 3
             };
 
             routineCard = new ModernCard
             {
-                Title = "Rutina Generada",
+                Title = "📝 Rutina Generada",
                 Size = new Size(500, 600),
-                CardColor = Color.White
+                CardColor = Color.White,
+                BorderRadius = 12,
+                ShadowOffset = 3
             };
         }
 
