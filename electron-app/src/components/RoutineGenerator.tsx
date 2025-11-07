@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { IconUserCircle, IconTarget, IconCalendar, IconSparkles } from '@tabler/icons-react'
 import type { UserProfile, WorkoutPlan, FitnessLevel } from '../models/types'
+import { useRoutineGenerator } from '../hooks/useRoutineGenerator'
+import { useExport } from '../hooks/useExport'
 
 export default function RoutineGenerator() {
   const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [generatedPlan, setGeneratedPlan] = useState<WorkoutPlan | null>(null)
+  const [useAI, setUseAI] = useState(true)
+
+  const { loading, error, generatedPlan, generateRoutine, checkOllamaStatus } = useRoutineGenerator()
+  const { loading: exportLoading, exportToWord, downloadHTML } = useExport()
 
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
@@ -18,49 +22,27 @@ export default function RoutineGenerator() {
   })
 
   const handleGenerate = async () => {
-    setLoading(true)
+    const plan = await generateRoutine(profile, useAI)
 
-    try {
-      // Call Ollama API through Electron
-      const result = await window.electronAPI.ollama.generateRoutine({
-        userName: profile.name,
-        userAge: profile.age,
-        fitnessLevel: profile.fitnessLevel,
-        trainingDays: profile.trainingDays,
-        goals: profile.goals,
-      })
-
-      if (result.success) {
-        // Process AI response and create workout plan
-        // This is a simplified version - you'd parse the AI response properly
-        const plan: WorkoutPlan = {
-          userName: profile.name,
-          userAge: profile.age,
-          fitnessLevel: profile.fitnessLevel,
-          trainingDays: profile.trainingDays,
-          goals: profile.goals,
-          routines: [], // Parse from AI response
-        }
-        setGeneratedPlan(plan)
-        setStep(3)
-      } else {
-        alert('Error generando rutina: ' + result.error)
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al generar rutina')
-    } finally {
-      setLoading(false)
+    if (plan) {
+      setStep(3)
+    } else if (error) {
+      alert('Error generando rutina: ' + error)
     }
   }
 
   const handleExportToWord = async () => {
     if (!generatedPlan) return
 
-    const result = await window.electronAPI.export.toWord(generatedPlan)
-    if (result.success) {
-      alert('Rutina exportada exitosamente a: ' + result.path)
+    const success = await exportToWord(generatedPlan)
+    if (success) {
+      alert('Rutina exportada exitosamente')
     }
+  }
+
+  const handleExportToHTML = async () => {
+    if (!generatedPlan) return
+    await downloadHTML(generatedPlan)
   }
 
   return (
@@ -102,10 +84,11 @@ export default function RoutineGenerator() {
       {step === 3 && generatedPlan && (
         <ResultStep
           plan={generatedPlan}
-          onExport={handleExportToWord}
+          onExportWord={handleExportToWord}
+          onExportHTML={handleExportToHTML}
+          loading={exportLoading}
           onNewRoutine={() => {
             setStep(1)
-            setGeneratedPlan(null)
           }}
         />
       )}
@@ -312,11 +295,13 @@ function GoalsStep({ profile, onChange, onBack, onGenerate, loading }: GoalsStep
 
 interface ResultStepProps {
   plan: WorkoutPlan
-  onExport: () => void
+  onExportWord: () => void
+  onExportHTML: () => void
+  loading: boolean
   onNewRoutine: () => void
 }
 
-function ResultStep({ plan, onExport, onNewRoutine }: ResultStepProps) {
+function ResultStep({ plan, onExportWord, onExportHTML, loading, onNewRoutine }: ResultStepProps) {
   return (
     <div className="space-y-6">
       <div className="card">
@@ -325,20 +310,48 @@ function ResultStep({ plan, onExport, onNewRoutine }: ResultStepProps) {
           Rutina generada para {plan.userName} - {plan.trainingDays} días por semana
         </p>
 
-        {/* This would show the actual routine details */}
-        <div className="bg-surface-light p-6 rounded-lg">
-          <p className="text-center text-text-muted">
-            La rutina se mostrará aquí con todos los ejercicios, series y repeticiones
-          </p>
+        {/* Mostrar rutinas por día */}
+        <div className="space-y-6">
+          {plan.routines.map((routine, idx) => (
+            <div key={idx} className="bg-surface-light p-6 rounded-lg">
+              <h3 className="text-xl font-bold mb-2">{routine.dayName}</h3>
+              <p className="text-text-muted mb-4">Enfoque: {routine.focus}</p>
+
+              <div className="space-y-3">
+                {routine.exercises.map((exercise, exIdx) => (
+                  <div key={exIdx} className="bg-surface p-4 rounded-lg border border-border">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-bold">
+                          {exIdx + 1}. {exercise.exercise?.spanish_name || 'Ejercicio'}
+                        </h4>
+                        <p className="text-sm text-text-muted mt-1">
+                          {exercise.exercise?.primary_muscle_group}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div>Series: {exercise.sets}</div>
+                        <div>Reps: {exercise.reps}</div>
+                        <div>Descanso: {exercise.restSeconds}s</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <button className="btn-outline flex-1" onClick={onNewRoutine}>
+      <div className="grid grid-cols-3 gap-4">
+        <button className="btn-outline" onClick={onNewRoutine}>
           Nueva Rutina
         </button>
-        <button className="btn-primary flex-1" onClick={onExport}>
-          Exportar a Word
+        <button className="btn-primary" onClick={onExportWord} disabled={loading}>
+          {loading ? 'Exportando...' : 'Exportar a Word'}
+        </button>
+        <button className="btn-secondary" onClick={onExportHTML} disabled={loading}>
+          Exportar a HTML
         </button>
       </div>
     </div>

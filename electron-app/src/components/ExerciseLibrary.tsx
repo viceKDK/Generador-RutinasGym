@@ -1,32 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { IconSearch, IconFilter, IconDumbbell } from '@tabler/icons-react'
 import type { Exercise } from '../models/types'
+import { useExercises } from '../hooks/useExercises'
 
 export default function ExerciseLibrary() {
-  const [exercises, setExercises] = useState<Exercise[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedMuscle, setSelectedMuscle] = useState('')
   const [selectedEquipment, setSelectedEquipment] = useState('')
 
-  useEffect(() => {
-    loadExercises()
-  }, [selectedMuscle, selectedEquipment])
-
-  const loadExercises = async () => {
-    setLoading(true)
-    try {
-      const data = await window.electronAPI.db.getExercises({
-        muscleGroup: selectedMuscle || undefined,
-        equipment: selectedEquipment || undefined,
-      })
-      setExercises(data)
-    } catch (error) {
-      console.error('Error loading exercises:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { exercises, loading, loadExercises } = useExercises({
+    muscleGroup: selectedMuscle,
+    equipment: selectedEquipment,
+    autoLoad: true,
+  })
 
   const filteredExercises = exercises.filter((exercise) =>
     exercise.spanish_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

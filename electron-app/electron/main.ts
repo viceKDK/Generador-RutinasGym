@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import Database from 'better-sqlite3'
+import { seedDatabase } from './seed-data'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -100,6 +101,9 @@ function initializeDatabase() {
       FOREIGN KEY (exercise_id) REFERENCES exercises(id)
     );
   `)
+
+  // Seed database with exercises
+  seedDatabase(db)
 
   console.log('Database initialized at:', dbPath)
 }
