@@ -4,6 +4,7 @@ import { IconBarbell, IconFileText, IconSettings, IconEdit } from '@tabler/icons
 import RoutineGenerator from './components/RoutineGenerator'
 import ExerciseLibrary from './components/ExerciseLibrary'
 import ExerciseManager from './components/ExerciseManager'
+import CreateEditExercise from './components/CreateEditExercise'
 import Settings from './components/Settings'
 
 function App() {
@@ -21,13 +22,9 @@ function App() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text">
-                  Generador de Rutinas
+                  Generador de Rutinas de Gimnasio
                 </h1>
-                <p className="text-xs text-text-muted">Sistema B2B para Gimnasios</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-text-muted bg-surface px-3 py-1 rounded-full">v1.0.0</span>
             </div>
           </div>
         </header>
@@ -75,6 +72,8 @@ function App() {
                 <Route path="/generator" element={<RoutineGenerator />} />
                 <Route path="/exercises" element={<ExerciseLibrary />} />
                 <Route path="/manager" element={<ExerciseManager />} />
+                <Route path="/manager/create" element={<CreateEditExercise />} />
+                <Route path="/manager/edit" element={<CreateEditExercise />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </div>
