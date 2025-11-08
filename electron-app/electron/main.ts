@@ -408,19 +408,62 @@ ipcMain.handle('db:saveRoutineExercise', async (_, routineId: number, exercise: 
 // Ollama integration
 ipcMain.handle('ollama:generateRoutine', async (_, params: any) => {
   try {
+    // Get available exercises from database
+    if (!db) {
+      throw new Error('Database not available')
+    }
+
+    const exercises = db.prepare('SELECT id, spanish_name, name, primary_muscle_group, secondary_muscle_group, equipment_type, exercise_type FROM exercises WHERE is_active = 1').all()
+
+    // Format exercises for prompt
+    const exerciseList = exercises.map((ex: any) =>
+      `- ID: ${ex.id} | ${ex.spanish_name} (${ex.name}) | Músculo: ${ex.primary_muscle_group}${ex.secondary_muscle_group ? ' / ' + ex.secondary_muscle_group : ''} | Equipo: ${ex.equipment_type} | Tipo: ${ex.exercise_type}`
+    ).join('\n')
+
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'mistral',
-        prompt: `Genera una rutina de gimnasio personalizada para:
+        prompt: `Eres un entrenador personal profesional. Genera una rutina de gimnasio personalizada usando EXCLUSIVAMENTE los ejercicios de esta lista.
+
+EJERCICIOS DISPONIBLES EN BASE DE DATOS:
+${exerciseList}
+
+INFORMACIÓN DEL CLIENTE:
 - Nombre: ${params.userName}
-- Edad: ${params.userAge}
-- Nivel: ${params.fitnessLevel}
-- Días de entrenamiento: ${params.trainingDays}
+- Edad: ${params.userAge} años
+- Nivel de fitness: ${params.fitnessLevel}
+- Días de entrenamiento por semana: ${params.trainingDays}
 - Objetivos: ${params.goals.join(', ')}
 
-Proporciona una rutina detallada con ejercicios, series, repeticiones y descansos.`,
+INSTRUCCIONES IMPORTANTES:
+1. USA SOLAMENTE los ejercicios de la lista anterior (referencia por ID)
+2. NO inventes ejercicios nuevos
+3. Distribuye los ejercicios en ${params.trainingDays} días diferentes
+4. Para cada ejercicio indica: nombre, series, repeticiones, descanso en segundos
+5. Balancea los grupos musculares según el nivel y objetivos
+6. Responde en formato JSON con esta estructura:
+{
+  "routines": [
+    {
+      "dayNumber": 1,
+      "dayName": "Día 1",
+      "focus": "Pecho y Tríceps",
+      "exercises": [
+        {
+          "exerciseId": ID_del_ejercicio,
+          "sets": número,
+          "reps": "8-12",
+          "restSeconds": 60,
+          "notes": "opcional"
+        }
+      ]
+    }
+  ]
+}
+
+Genera la rutina AHORA en formato JSON:`,
         stream: false,
       }),
     })
@@ -430,7 +473,7 @@ Proporciona una rutina detallada con ejercicios, series, repeticiones y descanso
     }
 
     const data = await response.json()
-    return { success: true, data: data.response }
+    return { success: true, data: data.response, exercises }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
