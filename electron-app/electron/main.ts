@@ -136,6 +136,187 @@ ipcMain.handle('db:getExercise', async (_, id: number) => {
   return stmt.get(id)
 })
 
+// Create exercise
+ipcMain.handle('db:createExercise', async (_, exercise: any) => {
+  if (!db) return null
+
+  const insert = db.prepare(`
+    INSERT INTO exercises (
+      name, spanish_name, description, instructions,
+      primary_muscle_group, secondary_muscle_group,
+      equipment_type, difficulty_level, exercise_type, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const result = insert.run(
+    exercise.name,
+    exercise.spanish_name,
+    exercise.description || null,
+    exercise.instructions || null,
+    exercise.primary_muscle_group,
+    exercise.secondary_muscle_group || null,
+    exercise.equipment_type,
+    exercise.difficulty_level || 'Medio',
+    exercise.exercise_type || 'Fuerza',
+    1
+  )
+
+  return result.lastInsertRowid
+})
+
+// Update exercise
+ipcMain.handle('db:updateExercise', async (_, id: number, exercise: any) => {
+  if (!db) return false
+
+  const update = db.prepare(`
+    UPDATE exercises SET
+      name = ?,
+      spanish_name = ?,
+      description = ?,
+      instructions = ?,
+      primary_muscle_group = ?,
+      secondary_muscle_group = ?,
+      equipment_type = ?,
+      difficulty_level = ?,
+      exercise_type = ?
+    WHERE id = ?
+  `)
+
+  const result = update.run(
+    exercise.name,
+    exercise.spanish_name,
+    exercise.description || null,
+    exercise.instructions || null,
+    exercise.primary_muscle_group,
+    exercise.secondary_muscle_group || null,
+    exercise.equipment_type,
+    exercise.difficulty_level || 'Medio',
+    exercise.exercise_type || 'Fuerza',
+    id
+  )
+
+  return result.changes > 0
+})
+
+// Delete exercise (soft delete)
+ipcMain.handle('db:deleteExercise', async (_, id: number) => {
+  if (!db) return false
+
+  const update = db.prepare('UPDATE exercises SET is_active = 0 WHERE id = ?')
+  const result = update.run(id)
+
+  return result.changes > 0
+})
+
+// Get exercise images
+ipcMain.handle('db:getExerciseImages', async (_, exerciseId: number) => {
+  if (!db) return []
+
+  const stmt = db.prepare(`
+    SELECT id, exercise_id, image_path, is_primary
+    FROM exercise_images
+    WHERE exercise_id = ?
+    ORDER BY is_primary DESC, id ASC
+  `)
+
+  return stmt.all(exerciseId)
+})
+
+// Save exercise image
+ipcMain.handle('db:saveExerciseImage', async (_, exerciseId: number, imagePath: string, isPrimary: boolean = false) => {
+  if (!db) return null
+
+  // If this is primary, unset other primary images
+  if (isPrimary) {
+    const unsetPrimary = db.prepare('UPDATE exercise_images SET is_primary = 0 WHERE exercise_id = ?')
+    unsetPrimary.run(exerciseId)
+  }
+
+  const insert = db.prepare(`
+    INSERT INTO exercise_images (exercise_id, image_path, is_primary)
+    VALUES (?, ?, ?)
+  `)
+
+  const result = insert.run(exerciseId, imagePath, isPrimary ? 1 : 0)
+  return result.lastInsertRowid
+})
+
+// Delete exercise image
+ipcMain.handle('db:deleteExerciseImage', async (_, imageId: number) => {
+  if (!db) return false
+
+  const del = db.prepare('DELETE FROM exercise_images WHERE id = ?')
+  const result = del.run(imageId)
+
+  return result.changes > 0
+})
+
+// Upload image file
+ipcMain.handle('file:uploadImage', async (_, imageData: string, exerciseId: number) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+
+    // Create images directory if it doesn't exist
+    const imagesDir = path.join(app.getPath('userData'), 'exercise-images')
+    await fs.mkdir(imagesDir, { recursive: true })
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const filename = `exercise-${exerciseId}-${timestamp}.png`
+    const filepath = path.join(imagesDir, filename)
+
+    // Remove data:image/png;base64, prefix if present
+    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+
+    // Save file
+    await fs.writeFile(filepath, buffer)
+
+    // Return the relative path
+    return path.join('exercise-images', filename)
+  } catch (error: any) {
+    console.error('Error uploading image:', error)
+    return null
+  }
+})
+
+// Upload video file
+ipcMain.handle('file:uploadVideo', async (_, videoData: string, exerciseId: number) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+
+    // Create videos directory if it doesn't exist
+    const videosDir = path.join(app.getPath('userData'), 'exercise-videos')
+    await fs.mkdir(videosDir, { recursive: true })
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const filename = `exercise-${exerciseId}-${timestamp}.mp4`
+    const filepath = path.join(videosDir, filename)
+
+    // Remove data:video/mp4;base64, prefix if present
+    const base64Data = videoData.replace(/^data:video\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+
+    // Save file
+    await fs.writeFile(filepath, buffer)
+
+    // Return the relative path
+    return path.join('exercise-videos', filename)
+  } catch (error: any) {
+    console.error('Error uploading video:', error)
+    return null
+  }
+})
+
+// Get file path (for loading images/videos)
+ipcMain.handle('file:getPath', async (_, relativePath: string) => {
+  const path = await import('path')
+  return path.join(app.getPath('userData'), relativePath)
+})
+
 ipcMain.handle('db:saveWorkoutPlan', async (_, plan: any) => {
   if (!db) return null
 

@@ -8,11 +8,23 @@ export default function ExerciseManager() {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const filteredExercises = exercises.filter((exercise) =>
     exercise.spanish_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     exercise.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const handleDelete = async (exerciseId: number) => {
+    try {
+      await window.electronAPI.db.deleteExercise(exerciseId)
+      await loadExercises()
+      setDeleteConfirm(null)
+    } catch (error) {
+      console.error('Error deleting exercise:', error)
+      alert('Error al eliminar el ejercicio')
+    }
+  }
 
   return (
     <div className="animate-fade-in">
@@ -56,10 +68,10 @@ export default function ExerciseManager() {
               key={exercise.id}
               exercise={exercise}
               onEdit={() => setSelectedExercise(exercise)}
-              onDelete={() => {
-                // TODO: Implement delete
-                console.log('Delete', exercise.id)
-              }}
+              onDelete={() => setDeleteConfirm(exercise.id!)}
+              isDeleting={deleteConfirm === exercise.id}
+              onConfirmDelete={() => handleDelete(exercise.id!)}
+              onCancelDelete={() => setDeleteConfirm(null)}
             />
           ))}
         </div>
@@ -74,11 +86,87 @@ export default function ExerciseManager() {
             setSelectedExercise(null)
           }}
           onSave={async (data) => {
-            // TODO: Implement save
-            console.log('Save', data)
-            setIsCreating(false)
-            setSelectedExercise(null)
-            await loadExercises()
+            try {
+              const exerciseData = {
+                name: data.name,
+                spanish_name: data.spanish_name,
+                description: data.description,
+                instructions: data.instructions,
+                primary_muscle_group: data.primary_muscle_group,
+                secondary_muscle_group: data.secondary_muscle_group,
+                equipment_type: data.equipment_type,
+                exercise_type: data.exercise_type,
+              }
+
+              let exerciseId: number
+
+              if (selectedExercise?.id) {
+                // Update existing
+                await window.electronAPI.db.updateExercise(selectedExercise.id, exerciseData)
+                exerciseId = selectedExercise.id
+              } else {
+                // Create new
+                exerciseId = await window.electronAPI.db.createExercise(exerciseData)
+              }
+
+              // Upload images
+              if (data.images && data.images.length > 0) {
+                for (let i = 0; i < data.images.length; i++) {
+                  const file = data.images[i]
+                  const reader = new FileReader()
+
+                  await new Promise((resolve, reject) => {
+                    reader.onload = async () => {
+                      try {
+                        const base64 = reader.result as string
+                        const imagePath = await window.electronAPI.file.uploadImage(base64, exerciseId)
+
+                        if (imagePath) {
+                          await window.electronAPI.db.saveExerciseImage(
+                            exerciseId,
+                            imagePath,
+                            i === 0 // First image is primary
+                          )
+                        }
+                        resolve(null)
+                      } catch (err) {
+                        reject(err)
+                      }
+                    }
+                    reader.onerror = reject
+                    reader.readAsDataURL(file)
+                  })
+                }
+              }
+
+              // Upload videos
+              if (data.videos && data.videos.length > 0) {
+                for (const file of data.videos) {
+                  const reader = new FileReader()
+
+                  await new Promise((resolve, reject) => {
+                    reader.onload = async () => {
+                      try {
+                        const base64 = reader.result as string
+                        await window.electronAPI.file.uploadVideo(base64, exerciseId)
+                        resolve(null)
+                      } catch (err) {
+                        reject(err)
+                      }
+                    }
+                    reader.onerror = reject
+                    reader.readAsDataURL(file)
+                  })
+                }
+              }
+
+              setIsCreating(false)
+              setSelectedExercise(null)
+              await loadExercises()
+            } catch (error) {
+              console.error('Error saving exercise:', error)
+              alert('Error al guardar el ejercicio')
+            }
           }}
         />
       )}
@@ -90,44 +178,67 @@ interface ExerciseManagerCardProps {
   exercise: Exercise
   onEdit: () => void
   onDelete: () => void
+  isDeleting: boolean
+  onConfirmDelete: () => void
+  onCancelDelete: () => void
 }
 
-function ExerciseManagerCard({ exercise, onEdit, onDelete }: ExerciseManagerCardProps) {
+function ExerciseManagerCard({ exercise, onEdit, onDelete, isDeleting, onConfirmDelete, onCancelDelete }: ExerciseManagerCardProps) {
   return (
     <div className="card group">
-      <div className="flex items-center gap-4">
-        <div className="w-20 h-20 bg-surface rounded-lg flex items-center justify-center flex-shrink-0">
-          <IconPhoto size={32} className="text-text-muted/30" />
-        </div>
-
-        <div className="flex-1">
-          <h3 className="font-bold text-lg text-text mb-1">{exercise.spanish_name}</h3>
-          <div className="flex items-center gap-3 text-sm text-text-muted">
-            <span>{exercise.primary_muscle_group}</span>
-            <span>•</span>
-            <span>{exercise.equipment_type}</span>
-            <span>•</span>
-            <span>{exercise.exercise_type || 'Fuerza'}</span>
+      {isDeleting ? (
+        <div className="flex items-center justify-between p-4 bg-error/10 rounded-lg">
+          <p className="text-error font-semibold">¿Eliminar "{exercise.spanish_name}"?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={onCancelDelete}
+              className="px-4 py-2 bg-surface hover:bg-border rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={onConfirmDelete}
+              className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors"
+            >
+              Eliminar
+            </button>
           </div>
         </div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 bg-surface rounded-lg flex items-center justify-center flex-shrink-0">
+            <IconPhoto size={32} className="text-text-muted/30" />
+          </div>
 
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={onEdit}
-            className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all"
-            title="Editar"
-          >
-            <IconEdit size={20} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 hover:bg-error/10 text-error rounded-lg transition-all"
-            title="Eliminar"
-          >
-            <IconTrash size={20} />
-          </button>
+          <div className="flex-1">
+            <h3 className="font-bold text-lg text-text mb-1">{exercise.spanish_name}</h3>
+            <div className="flex items-center gap-3 text-sm text-text-muted">
+              <span>{exercise.primary_muscle_group}</span>
+              <span>•</span>
+              <span>{exercise.equipment_type}</span>
+              <span>•</span>
+              <span>{exercise.exercise_type || 'Fuerza'}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={onEdit}
+              className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all"
+              title="Editar"
+            >
+              <IconEdit size={20} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2 hover:bg-error/10 text-error rounded-lg transition-all"
+              title="Eliminar"
+            >
+              <IconTrash size={20} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
