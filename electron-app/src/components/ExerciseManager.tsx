@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { IconPlus, IconEdit, IconTrash, IconPhoto, IconVideo, IconSearch, IconUpload } from '@tabler/icons-react'
+import { IconPlus, IconEdit, IconTrash, IconPhoto, IconVideo, IconSearch, IconUpload, IconLink, IconX } from '@tabler/icons-react'
 import type { Exercise } from '../models/types'
 import { useExercises } from '../hooks/useExercises'
 
@@ -96,6 +96,7 @@ export default function ExerciseManager() {
                 secondary_muscle_group: data.secondary_muscle_group,
                 equipment_type: data.equipment_type,
                 exercise_type: data.exercise_type,
+                video_url: data.video_url,
               }
 
               let exerciseId: number
@@ -259,11 +260,31 @@ function ExerciseEditorModal({ exercise, onClose, onSave }: ExerciseEditorModalP
     secondary_muscle_group: exercise?.secondary_muscle_group || '',
     equipment_type: exercise?.equipment_type || '',
     exercise_type: exercise?.exercise_type || 'Fuerza',
+    video_url: exercise?.video_url || '',
   })
 
   const [images, setImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [videos, setVideos] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
+
+  const handleImageChange = (files: FileList | null) => {
+    if (!files) return
+
+    const fileArray = Array.from(files)
+    setImages(fileArray)
+
+    // Generate previews
+    const previews = fileArray.map(file => URL.createObjectURL(file))
+    setImagePreviews(previews)
+  }
+
+  // Cleanup previews on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [imagePreviews])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -419,6 +440,21 @@ function ExerciseEditorModal({ exercise, onClose, onSave }: ExerciseEditorModalP
               </div>
             </div>
 
+            {/* Video URL */}
+            <div>
+              <label className="label flex items-center gap-2">
+                <IconLink size={18} />
+                URL del Video (YouTube, Vimeo, etc.)
+              </label>
+              <input
+                type="url"
+                className="input"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={formData.video_url}
+                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+              />
+            </div>
+
             {/* Media Upload */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -433,11 +469,7 @@ function ExerciseEditorModal({ exercise, onClose, onSave }: ExerciseEditorModalP
                     multiple
                     className="hidden"
                     id="image-upload"
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        setImages(Array.from(e.target.files))
-                      }
-                    }}
+                    onChange={(e) => handleImageChange(e.target.files)}
                   />
                   <label htmlFor="image-upload" className="cursor-pointer">
                     <IconUpload size={32} className="mx-auto mb-2 text-text-muted" />
@@ -446,6 +478,38 @@ function ExerciseEditorModal({ exercise, onClose, onSave }: ExerciseEditorModalP
                     </p>
                   </label>
                 </div>
+
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = images.filter((_, i) => i !== index)
+                            const newPreviews = imagePreviews.filter((_, i) => i !== index)
+                            setImages(newImages)
+                            setImagePreviews(newPreviews)
+                          }}
+                          className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <IconX size={16} />
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-primary text-white text-xs px-2 py-0.5 rounded">
+                            Principal
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

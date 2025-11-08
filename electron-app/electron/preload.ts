@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     uploadVideo: (videoData: string, exerciseId: number) =>
       ipcRenderer.invoke('file:uploadVideo', videoData, exerciseId),
     getPath: (relativePath: string) => ipcRenderer.invoke('file:getPath', relativePath),
+    openFolder: (relativePath: string) => ipcRenderer.invoke('file:openFolder', relativePath),
   },
 
   // Ollama AI integration
@@ -61,6 +62,7 @@ export interface ElectronAPI {
     uploadImage: (imageData: string, exerciseId: number) => Promise<string | null>
     uploadVideo: (videoData: string, exerciseId: number) => Promise<string | null>
     getPath: (relativePath: string) => Promise<string>
+    openFolder: (relativePath: string) => Promise<{ success: boolean; error?: string }>
   }
   ollama: {
     generateRoutine: (params: any) => Promise<{ success: boolean; data?: any; error?: string }>

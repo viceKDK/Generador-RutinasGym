@@ -9,6 +9,7 @@ export interface Exercise {
   equipment_type: string
   difficulty_level: DifficultyLevel
   exercise_type: ExerciseType
+  video_url?: string
   is_active: boolean
   created_at?: string
 }

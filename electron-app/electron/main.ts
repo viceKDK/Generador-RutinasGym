@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import Database from 'better-sqlite3'
@@ -57,6 +57,7 @@ function initializeDatabase() {
       equipment_type TEXT,
       difficulty_level TEXT,
       exercise_type TEXT,
+      video_url TEXT,
       is_active BOOLEAN DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -103,6 +104,19 @@ function initializeDatabase() {
     );
   `)
 
+  // Migration: Add video_url column if it doesn't exist
+  try {
+    const tableInfo = db.prepare('PRAGMA table_info(exercises)').all()
+    const hasVideoUrl = tableInfo.some((col: any) => col.name === 'video_url')
+
+    if (!hasVideoUrl) {
+      db.exec('ALTER TABLE exercises ADD COLUMN video_url TEXT')
+      console.log('Added video_url column to exercises table')
+    }
+  } catch (error) {
+    console.error('Error adding video_url column:', error)
+  }
+
   // Seed database with exercises
   seedDatabase(db)
 
@@ -144,8 +158,8 @@ ipcMain.handle('db:createExercise', async (_, exercise: any) => {
     INSERT INTO exercises (
       name, spanish_name, description, instructions,
       primary_muscle_group, secondary_muscle_group,
-      equipment_type, difficulty_level, exercise_type, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      equipment_type, difficulty_level, exercise_type, video_url, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const result = insert.run(
@@ -158,6 +172,7 @@ ipcMain.handle('db:createExercise', async (_, exercise: any) => {
     exercise.equipment_type,
     exercise.difficulty_level || 'Medio',
     exercise.exercise_type || 'Fuerza',
+    exercise.video_url || null,
     1
   )
 
@@ -178,7 +193,8 @@ ipcMain.handle('db:updateExercise', async (_, id: number, exercise: any) => {
       secondary_muscle_group = ?,
       equipment_type = ?,
       difficulty_level = ?,
-      exercise_type = ?
+      exercise_type = ?,
+      video_url = ?
     WHERE id = ?
   `)
 
@@ -192,6 +208,7 @@ ipcMain.handle('db:updateExercise', async (_, id: number, exercise: any) => {
     exercise.equipment_type,
     exercise.difficulty_level || 'Medio',
     exercise.exercise_type || 'Fuerza',
+    exercise.video_url || null,
     id
   )
 
@@ -315,6 +332,19 @@ ipcMain.handle('file:uploadVideo', async (_, videoData: string, exerciseId: numb
 ipcMain.handle('file:getPath', async (_, relativePath: string) => {
   const path = await import('path')
   return path.join(app.getPath('userData'), relativePath)
+})
+
+// Open folder containing file
+ipcMain.handle('file:openFolder', async (_, relativePath: string) => {
+  try {
+    const path = await import('path')
+    const absolutePath = path.join(app.getPath('userData'), relativePath)
+    shell.showItemInFolder(absolutePath)
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error opening folder:', error)
+    return { success: false, error: error.message }
+  }
 })
 
 ipcMain.handle('db:saveWorkoutPlan', async (_, plan: any) => {
