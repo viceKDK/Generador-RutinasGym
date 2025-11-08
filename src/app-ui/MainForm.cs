@@ -135,7 +135,7 @@ namespace GymRoutineGenerator.UI
 
         private void InitializeComponent()
         {
-            // Form properties with modern styling
+            // Form properties with premium styling
             this.Text = "Generador de Rutinas de Gimnasio";
             this.Size = new Size(1400, 900);
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -144,8 +144,8 @@ namespace GymRoutineGenerator.UI
             this.MaximizeBox = true;
             this.WindowState = FormWindowState.Maximized;
 
-            // Modern gradient background
-            this.BackColor = Color.FromArgb(240, 242, 247);
+            // Premium dark background
+            this.BackColor = PremiumColors.BackgroundDark;
             this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
             // Enable double buffering for smooth rendering
@@ -162,85 +162,83 @@ namespace GymRoutineGenerator.UI
 
         private void CreateControls()
         {
-            // Personal Information with enhanced styling
+            // Personal Information with premium styling
             var personalInfoLabel = new Label
             {
                 Text = "Información Personal",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = PremiumColors.Gold,
                 AutoSize = true,
-                Padding = new Padding(0, 10, 0, 10)
+                Padding = new Padding(0, 8, 0, 8)
             };
 
             nameTextBox = new TextBox
             {
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(280, 35),
+                Font = new Font("Segoe UI", 10),
+                Size = new Size(250, 30),
                 PlaceholderText = "Ingresa tu nombre completo",
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 BorderStyle = BorderStyle.FixedSingle
             };
             AddModernTextBoxStyling(nameTextBox);
 
             ageNumericUpDown = new NumericUpDown
             {
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(120, 35),
+                Font = new Font("Segoe UI", 10),
+                Size = new Size(100, 30),
                 Minimum = 16,
                 Maximum = 80,
                 Value = 25,
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 BorderStyle = BorderStyle.FixedSingle
             };
 
             genderComboBox = new ComboBox
             {
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(180, 35),
+                Font = new Font("Segoe UI", 10),
+                Size = new Size(150, 30),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 FlatStyle = FlatStyle.Flat
             };
             genderComboBox.Items.Clear();
             genderComboBox.Items.AddRange(new[] { "Hombre", "Mujer", "Otro" });
             genderComboBox.SelectedIndex = 0;
 
-            // Training Preferences with enhanced styling
+            // Training Preferences with premium styling
             var trainingInfoLabel = new Label
             {
                 Text = "Preferencias de Entrenamiento",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = PremiumColors.VioletBright,
                 AutoSize = true,
-                Padding = new Padding(0, 10, 0, 10)
+                Padding = new Padding(0, 8, 0, 8)
             };
 
             fitnessLevelComboBox = new ComboBox
             {
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(220, 35),
+                Font = new Font("Segoe UI", 10),
+                Size = new Size(180, 30),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 FlatStyle = FlatStyle.Flat
             };
-            fitnessLevelComboBox.Items.AddRange(new[] { "°¸¥â° Principiante", "°¸¥ Intermedio", "°¸¥â¡ Avanzado" });
-            fitnessLevelComboBox.SelectedIndex = 1;
-            // Normalize items without emojis/corruption
             fitnessLevelComboBox.Items.Clear();
             fitnessLevelComboBox.Items.AddRange(new[] { "Principiante", "Intermedio", "Avanzado" });
+            fitnessLevelComboBox.SelectedIndex = 1;
 
-            // Days per week selector as ComboBox (replacing trackbar)
+            // Days per week selector as ComboBox
             trainingDaysComboBox = new ComboBox
             {
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(80, 35),
+                Font = new Font("Segoe UI", 10),
+                Size = new Size(70, 30),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 FlatStyle = FlatStyle.Flat
             };
             trainingDaysComboBox.Items.AddRange(new object[] { 1, 2, 3, 4, 5, 6, 7 });
@@ -263,31 +261,31 @@ namespace GymRoutineGenerator.UI
             trainingDaysLabel = new Label
             {
                 Text = "3 días por semana",
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                ForeColor = Color.FromArgb(13, 110, 253),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = PremiumColors.Gold,
                 AutoSize = true,
                 BackColor = Color.Transparent
             };
 
-            // Goals with enhanced styling
+            // Goals with premium styling
             var goalsLabel = new Label
             {
                 Text = "Objetivos de Entrenamiento",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = PremiumColors.GreenForest,
                 AutoSize = true,
-                Padding = new Padding(0, 10, 0, 10)
+                Padding = new Padding(0, 8, 0, 8)
             };
 
             goalsCheckedListBox = new CheckedListBox
             {
-                Font = new Font("Segoe UI", 11),
-                Size = new Size(350, 140),
+                Font = new Font("Segoe UI", 9),
+                Size = new Size(300, 120),
                 CheckOnClick = true,
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 BorderStyle = BorderStyle.FixedSingle,
-                ItemHeight = 24
+                ItemHeight = 22
             };
             goalsCheckedListBox.Items.AddRange(new object[]
             {
@@ -298,16 +296,19 @@ namespace GymRoutineGenerator.UI
             });
             goalsCheckedListBox.SetItemChecked(0, true);
 
-            // Botón fino y largo para seleccionar fuente de ejercicios
+            // Botón compacto para seleccionar fuente de ejercicios
             dataSourceButton = new Button
             {
-                Text = "Fuente: BD principal (personalizada)",
-                Width = 360,
-                Height = 32,
+                Text = "Fuente: BD principal",
+                Width = 300,
+                Height = 28,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(248, 249, 250)
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.Gold,
+                Font = new Font("Segoe UI", 8, FontStyle.Regular)
             };
-            dataSourceButton.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+            dataSourceButton.FlatAppearance.BorderColor = PremiumColors.BorderGold;
+            dataSourceButton.FlatAppearance.BorderSize = 1;
             dataSourceButton.Click += (_, __) =>
             {
                 generationDataSource = generationDataSource == Models.ManualExerciseDataSource.Primary
@@ -316,28 +317,26 @@ namespace GymRoutineGenerator.UI
                 UpdateDataSourceButtonText();
             };
 
-            // Action Buttons with modern styling
+            // Action Buttons with premium styling
             generateButton = new ModernButton
             {
-                Text = "Generar rutina",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Size = new Size(200, 60),
-                NormalColor = Color.FromArgb(25, 135, 84),
-                HoverColor = Color.FromArgb(20, 108, 67),
-                PressedColor = Color.FromArgb(15, 81, 50),
-                BorderRadius = 12
+                Text = "Generar",
+                Size = new Size(140, 40),
+                NormalColor = PremiumColors.Buttons.SuccessNormal,
+                HoverColor = PremiumColors.Buttons.SuccessHover,
+                PressedColor = PremiumColors.Buttons.SuccessPressed,
+                BorderRadius = 6
             };
             generateButton.Click += GenerateButton_Click;
 
             exportButton = new ModernButton
             {
-                Text = "Exportar a Word",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Size = new Size(200, 60),
-                NormalColor = Color.FromArgb(13, 110, 253),
-                HoverColor = Color.FromArgb(10, 88, 202),
-                PressedColor = Color.FromArgb(8, 66, 152),
-                BorderRadius = 12,
+                Text = "Exportar Word",
+                Size = new Size(140, 40),
+                NormalColor = PremiumColors.Buttons.PrimaryNormal,
+                HoverColor = PremiumColors.Buttons.PrimaryHover,
+                PressedColor = PremiumColors.Buttons.PrimaryPressed,
+                BorderRadius = 6,
                 Enabled = false
             };
             exportButton.Click += ExportButton_Click;
@@ -345,65 +344,65 @@ namespace GymRoutineGenerator.UI
             previewButton = new ModernButton
             {
                 Text = "Alternativa",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Size = new Size(200, 60),
-                NormalColor = Color.FromArgb(102, 16, 242),
-                HoverColor = Color.FromArgb(81, 13, 194),
-                PressedColor = Color.FromArgb(61, 10, 146),
-                BorderRadius = 12,
+                Size = new Size(140, 40),
+                NormalColor = PremiumColors.Buttons.SecondaryNormal,
+                HoverColor = PremiumColors.Buttons.SecondaryHover,
+                PressedColor = PremiumColors.Buttons.SecondaryPressed,
+                BorderRadius = 6,
                 Enabled = false
             };
             previewButton.Click += AlternativeButton_Click;
 
             exportToPDFButton = new ModernButton
             {
-                Text = "Exportar a PDF",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Size = new Size(200, 60),
-                NormalColor = Color.FromArgb(220, 53, 69),
-                HoverColor = Color.FromArgb(176, 42, 55),
-                PressedColor = Color.FromArgb(132, 32, 41),
-                BorderRadius = 12,
+                Text = "Exportar PDF",
+                Size = new Size(140, 40),
+                NormalColor = PremiumColors.Buttons.AccentNormal,
+                HoverColor = PremiumColors.Buttons.AccentHover,
+                PressedColor = PremiumColors.Buttons.AccentPressed,
+                BorderRadius = 6,
                 Enabled = false
             };
             exportToPDFButton.Click += ExportToPDFButton_Click;
 
-            // Routine Display with enhanced styling
+            // Routine Display with premium styling
             var routineLabel = new Label
             {
-                Text = "°¸ââ¹ Rutina Generada",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                Text = "Rutina Generada",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = PremiumColors.Gold,
                 AutoSize = true,
-                Padding = new Padding(0, 10, 0, 10)
+                Padding = new Padding(0, 8, 0, 8)
             };
 
             routineDisplayTextBox = new RichTextBox
             {
-                Font = new Font("Segoe UI", 11),
+                Font = new Font("Segoe UI", 10),
                 Size = new Size(Math.Max(400, this.Width / 2 - 60), Math.Max(300, this.Height - 400)),
                 ReadOnly = true,
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 ScrollBars = RichTextBoxScrollBars.Vertical,
                 DetectUrls = false
             };
             AddModernTextBoxStyling(routineDisplayTextBox);
 
-            // Status and Progress with modern styling
+            // Status and Progress with premium styling
             progressBar = new ProgressBar
             {
-                Size = new Size(Math.Max(400, this.Width / 2 - 60), 30),
+                Size = new Size(Math.Max(400, this.Width / 2 - 60), 25),
                 Style = ProgressBarStyle.Continuous,
                 Visible = false,
-                ForeColor = Color.FromArgb(25, 135, 84),
-                BackColor = Color.FromArgb(233, 236, 239)
+                ForeColor = PremiumColors.GreenForest,
+                BackColor = PremiumColors.BackgroundCard
             };
 
-            statusLabel = new Label{Text = "",
-                Font = new Font("Segoe UI", 10, FontStyle.Regular),
-                ForeColor = Color.FromArgb(108, 117, 125),
+            statusLabel = new Label
+            {
+                Text = "",
+                Font = new Font("Segoe UI", 9, FontStyle.Regular),
+                ForeColor = PremiumColors.TextSecondary,
                 AutoSize = true,
                 BackColor = Color.Transparent,
                 Visible = false
@@ -527,8 +526,8 @@ namespace GymRoutineGenerator.UI
             return new Label
             {
                 Text = text,
-                Font = new Font("Segoe UI", 11, FontStyle.Regular),
-                ForeColor = Color.FromArgb(73, 80, 87),
+                Font = new Font("Segoe UI", 9, FontStyle.Regular),
+                ForeColor = PremiumColors.TextSecondary,
                 AutoSize = true,
                 BackColor = Color.Transparent
             };
@@ -567,11 +566,7 @@ namespace GymRoutineGenerator.UI
             var helpMenu = new ToolStripMenuItem("Ayuda");
             var viewHelpItem = new ToolStripMenuItem("Ver ayuda");
             viewHelpItem.Click += (s, e) => ShowHelp();
-            var aboutItem = new ToolStripMenuItem("Acerca de");
-            aboutItem.Click += (s, e) => ShowAbout();
             helpMenu.DropDownItems.Add(viewHelpItem);
-            helpMenu.DropDownItems.Add(new ToolStripSeparator());
-            helpMenu.DropDownItems.Add(aboutItem);
 
             menuStrip.Items.Add(toolsMenu);
             menuStrip.Items.Add(configMenu);
@@ -594,27 +589,30 @@ namespace GymRoutineGenerator.UI
             personalInfoCard = new ModernCard
             {
                 Title = "Información Personal",
-                Size = new Size(480, 210),
-                CardColor = Color.White,
-                BorderRadius = 12,
+                Size = new Size(400, 180),
+                CardColor = PremiumColors.Cards.Background,
+                TitleColor = PremiumColors.Cards.TitleGold,
+                BorderRadius = 8,
                 ShadowOffset = 3
             };
 
             trainingCard = new ModernCard
             {
-                Title = "Preferencias de Entrenamiento",
-                Size = new Size(480, 190),
-                CardColor = Color.White,
-                BorderRadius = 12,
+                Title = "Preferencias",
+                Size = new Size(400, 160),
+                CardColor = PremiumColors.Cards.Background,
+                TitleColor = PremiumColors.Cards.TitleViolet,
+                BorderRadius = 8,
                 ShadowOffset = 3
             };
 
             goalsCard = new ModernCard
             {
-                Title = "Objetivos de Entrenamiento",
-                Size = new Size(480, 240),
-                CardColor = Color.White,
-                BorderRadius = 12,
+                Title = "Objetivos",
+                Size = new Size(400, 200),
+                CardColor = PremiumColors.Cards.Background,
+                TitleColor = PremiumColors.GreenForest,
+                BorderRadius = 8,
                 ShadowOffset = 3
             };
 
@@ -622,8 +620,9 @@ namespace GymRoutineGenerator.UI
             {
                 Title = "Rutina Generada",
                 Size = new Size(500, 600),
-                CardColor = Color.White,
-                BorderRadius = 12,
+                CardColor = PremiumColors.Cards.Background,
+                TitleColor = PremiumColors.Gold,
+                BorderRadius = 8,
                 ShadowOffset = 3
             };
         }
@@ -820,8 +819,8 @@ namespace GymRoutineGenerator.UI
         {
             if (dataSourceButton == null) return;
             dataSourceButton.Text = generationDataSource == Models.ManualExerciseDataSource.Primary
-                ? "Fuente: BD principal (personalizada)"
-                : "Fuente: BD secundaria (general)";
+                ? "Fuente: BD principal"
+                : "Fuente: BD secundaria";
         }
 
         private string FormatRoutineForDisplay(UserProfile profile, List<WorkoutDay> workoutDays)
@@ -1245,27 +1244,30 @@ namespace GymRoutineGenerator.UI
         private void PopulateRichTextBoxWithImages(UserProfile profile, List<WorkoutDay> workoutDays)
         {
             routineDisplayTextBox.Clear();
-            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 14, FontStyle.Bold);
-            routineDisplayTextBox.SelectionColor = Color.FromArgb(33, 37, 41);
-            routineDisplayTextBox.AppendText("RUTINA PERSONALIZADA GENERADA CON IA\n\n");
-
             routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 12, FontStyle.Bold);
+            routineDisplayTextBox.SelectionColor = PremiumColors.Gold;
+            routineDisplayTextBox.AppendText("RUTINA PERSONALIZADA\n\n");
+
+            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
+            routineDisplayTextBox.SelectionColor = PremiumColors.VioletBright;
             routineDisplayTextBox.AppendText("INFORMACIÓN DEL CLIENTE:\n");
-            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10);
+            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 9);
+            routineDisplayTextBox.SelectionColor = PremiumColors.White;
             routineDisplayTextBox.AppendText($"  Nombre: {profile.Name}\n");
             routineDisplayTextBox.AppendText($"  Edad: {profile.Age} años\n");
             routineDisplayTextBox.AppendText($"  Género: {profile.Gender}\n");
             routineDisplayTextBox.AppendText($"  Nivel: {profile.FitnessLevel}\n");
             routineDisplayTextBox.AppendText($"  Frecuencia: {profile.TrainingDays} días/semana\n\n");
 
-            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 12, FontStyle.Bold);
+            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
+            routineDisplayTextBox.SelectionColor = PremiumColors.GreenForest;
             routineDisplayTextBox.AppendText("PLAN DE ENTRENAMIENTO:\n\n");
 
             for (int i = 0; i < workoutDays.Count; i++)
             {
                 var day = workoutDays[i];
-                routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 11, FontStyle.Bold);
-                routineDisplayTextBox.SelectionColor = Color.FromArgb(33, 37, 41); // Color negro en lugar de azul
+                routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
+                routineDisplayTextBox.SelectionColor = PremiumColors.Gold;
 
                 // Mostrar día con grupos musculares
                 var dayTitle = day.Name.ToUpper();
@@ -1277,7 +1279,8 @@ namespace GymRoutineGenerator.UI
 
                 if (day.Exercises == null || day.Exercises.Count == 0)
                 {
-                    routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10, FontStyle.Italic);
+                    routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 9, FontStyle.Italic);
+                    routineDisplayTextBox.SelectionColor = PremiumColors.TextSecondary;
                     routineDisplayTextBox.AppendText("  Sin ejercicios asignados\n\n");
                     continue;
                 }
@@ -1285,7 +1288,8 @@ namespace GymRoutineGenerator.UI
                 foreach (var exercise in day.Exercises)
                 {
                     // Nombre del ejercicio
-                    routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
+                    routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+                    routineDisplayTextBox.SelectionColor = PremiumColors.White;
                     routineDisplayTextBox.AppendText($"\n {exercise.Name}\n");
 
                     // Imagen del ejercicio
@@ -1325,21 +1329,20 @@ namespace GymRoutineGenerator.UI
                     }
 
                     // Series y reps
-                    routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 9);
+                    routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 8);
+                    routineDisplayTextBox.SelectionColor = PremiumColors.TextSecondary;
                     routineDisplayTextBox.AppendText($"    {exercise.SetsAndReps}\n");
-
-                    // Instrucciones (omitir si es la frase genérica)
-                    // No mostrar instrucciones
 
                     routineDisplayTextBox.AppendText("\n");
                 }
             }
 
-            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 11, FontStyle.Bold);
-            routineDisplayTextBox.SelectionColor = Color.Green;
-            routineDisplayTextBox.AppendText("\nRUTINA COMPLETADA!\n");
-            routineDisplayTextBox.AppendText("Generada con IA (Mistral)\n");
-            routineDisplayTextBox.SelectionColor = Color.FromArgb(33, 37, 41);
+            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
+            routineDisplayTextBox.SelectionColor = PremiumColors.GreenForest;
+            routineDisplayTextBox.AppendText("\nRUTINA COMPLETADA\n");
+            routineDisplayTextBox.SelectionColor = PremiumColors.TextSecondary;
+            routineDisplayTextBox.SelectionFont = new Font("Segoe UI", 8);
+            routineDisplayTextBox.AppendText("Generada con IA\n");
         }
 
         private void PopulateRichTextBoxWithImagesForPreview(RichTextBox richTextBox, UserProfile profile, List<WorkoutDay> workoutDays)
@@ -1590,12 +1593,6 @@ namespace GymRoutineGenerator.UI
         private void ShowHelp()
         {
             MessageBox.Show("Manual de usuario en preparación.", "Ayuda",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void ShowAbout()
-        {
-            MessageBox.Show("Generador de Rutinas de Gimnasio\nVersión 2.0", "Acerca de",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }

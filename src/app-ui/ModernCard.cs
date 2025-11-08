@@ -7,13 +7,13 @@ namespace GymRoutineGenerator.UI
 {
     public class ModernCard : Panel
     {
-        private int _borderRadius = 16;
-        private Color _cardColor = Color.White;
-        private Color _shadowColor = Color.FromArgb(15, 0, 0, 0);
-        private int _shadowOffset = 4;
+        private int _borderRadius = 8;
+        private Color _cardColor = PremiumColors.Cards.Background;
+        private Color _shadowColor = PremiumColors.Cards.Shadow;
+        private int _shadowOffset = 3;
         private string _title = "";
-        private Font _titleFont = new Font("Segoe UI", 14F, FontStyle.Bold);
-        private Color _titleColor = Color.FromArgb(33, 37, 41);
+        private Font _titleFont = new Font("Segoe UI", 11F, FontStyle.Bold);
+        private Color _titleColor = PremiumColors.Cards.TitleGold;
 
         public int BorderRadius
         {
@@ -63,7 +63,7 @@ namespace GymRoutineGenerator.UI
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                      ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw |
                      ControlStyles.SupportsTransparentBackColor, true);
-            Padding = new Padding(20);
+            Padding = new Padding(15);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -98,8 +98,8 @@ namespace GymRoutineGenerator.UI
                 graphics.FillPath(cardBrush, cardPath);
             }
 
-            // Draw border
-            using (var borderPen = new Pen(Color.FromArgb(30, 0, 0, 0), 1))
+            // Draw border (dorado premium)
+            using (var borderPen = new Pen(PremiumColors.Cards.Border, 2))
             {
                 graphics.DrawPath(borderPen, cardPath);
             }
