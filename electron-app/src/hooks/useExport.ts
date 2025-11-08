@@ -34,7 +34,33 @@ export function useExport() {
   }
 
   /**
-   * Exporta a HTML (para imprimir o PDF)
+   * Exporta a PDF
+   */
+  const exportToPDF = async (plan: WorkoutPlan): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await window.electronAPI.export.toPDF(plan)
+
+      if (result.success) {
+        console.log('Exported to:', result.path)
+        return true
+      } else {
+        setError('Error exporting to PDF')
+        return false
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error exporting to PDF')
+      console.error('Error exporting to PDF:', err)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * Exporta a HTML (para imprimir)
    */
   const exportToHTML = async (plan: WorkoutPlan): Promise<string | null> => {
     setLoading(true)
@@ -52,28 +78,11 @@ export function useExport() {
     }
   }
 
-  /**
-   * Descarga HTML como archivo
-   */
-  const downloadHTML = async (plan: WorkoutPlan): Promise<void> => {
-    const html = await exportToHTML(plan)
-
-    if (html) {
-      const blob = new Blob([html], { type: 'text/html' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `rutina-${plan.userName}-${Date.now()}.html`
-      a.click()
-      URL.revokeObjectURL(url)
-    }
-  }
-
   return {
     loading,
     error,
     exportToWord,
+    exportToPDF,
     exportToHTML,
-    downloadHTML,
   }
 }

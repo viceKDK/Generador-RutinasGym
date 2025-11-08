@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconSearch, IconFilter, IconBarbell } from '@tabler/icons-react'
+import { IconSearch, IconBarbell, IconPhoto } from '@tabler/icons-react'
 import type { Exercise } from '../models/types'
 import { useExercises } from '../hooks/useExercises'
 
@@ -7,6 +7,7 @@ export default function ExerciseLibrary() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedMuscle, setSelectedMuscle] = useState('')
   const [selectedEquipment, setSelectedEquipment] = useState('')
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
 
   const { exercises, loading, loadExercises } = useExercises({
     muscleGroup: selectedMuscle,
@@ -21,7 +22,12 @@ export default function ExerciseLibrary() {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-3xl font-bold mb-8">Biblioteca de Ejercicios</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="section-title">Biblioteca de Ejercicios</h1>
+        <div className="text-sm text-text-muted bg-surface px-4 py-2 rounded-lg">
+          {filteredExercises.length} ejercicios encontrados
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="card mb-6">
@@ -81,9 +87,13 @@ export default function ExerciseLibrary() {
           <div className="spinner" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredExercises.map((exercise) => (
-            <ExerciseCard key={exercise.id} exercise={exercise} />
+            <ExerciseCard
+              key={exercise.id}
+              exercise={exercise}
+              onClick={() => setSelectedExercise(exercise)}
+            />
           ))}
         </div>
       )}
@@ -94,46 +104,144 @@ export default function ExerciseLibrary() {
           <p className="text-text-muted">No se encontraron ejercicios</p>
         </div>
       )}
+
+      {/* Exercise Detail Modal */}
+      {selectedExercise && (
+        <ExerciseDetailModal
+          exercise={selectedExercise}
+          onClose={() => setSelectedExercise(null)}
+        />
+      )}
     </div>
   )
 }
 
 interface ExerciseCardProps {
   exercise: Exercise
+  onClick?: () => void
 }
 
-function ExerciseCard({ exercise }: ExerciseCardProps) {
+function ExerciseCard({ exercise, onClick }: ExerciseCardProps) {
   return (
-    <div className="card hover:shadow-2xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="font-bold text-lg">{exercise.spanish_name}</h3>
-        <span className={`px-2 py-1 rounded text-xs ${
-          exercise.difficulty_level === 'Fácil'
-            ? 'bg-green-500/20 text-green-400'
-            : exercise.difficulty_level === 'Medio'
-            ? 'bg-yellow-500/20 text-yellow-400'
-            : 'bg-red-500/20 text-red-400'
-        }`}>
-          {exercise.difficulty_level}
-        </span>
-      </div>
-
-      <div className="space-y-2 text-sm text-text-muted">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Músculo:</span>
-          <span>{exercise.primary_muscle_group}</span>
+    <div
+      className="card hover:shadow-xl transition-all duration-300 cursor-pointer group animate-scale-in"
+      onClick={onClick}
+    >
+      {/* Image Preview */}
+      <div className="relative w-full h-48 bg-surface rounded-lg mb-4 overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+          <IconPhoto size={48} className="text-text-muted/30" />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Equipo:</span>
-          <span>{exercise.equipment_type}</span>
+        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-semibold text-primary">
+          {exercise.exercise_type || 'Fuerza'}
         </div>
       </div>
 
-      {exercise.description && (
-        <p className="mt-3 text-sm text-text-muted line-clamp-2">
-          {exercise.description}
-        </p>
-      )}
+      <div className="space-y-3">
+        <h3 className="font-bold text-lg text-text group-hover:text-primary transition-colors">
+          {exercise.spanish_name}
+        </h3>
+
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-primary"></div>
+            <span className="text-text-muted">{exercise.primary_muscle_group}</span>
+          </div>
+          {exercise.secondary_muscle_group && (
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-secondary"></div>
+              <span className="text-text-muted">{exercise.secondary_muscle_group}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-sm">
+          <span className="px-3 py-1 bg-surface rounded-full text-text-muted">
+            {exercise.equipment_type}
+          </span>
+        </div>
+
+        {exercise.description && (
+          <p className="text-sm text-text-muted line-clamp-2">
+            {exercise.description}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface ExerciseDetailModalProps {
+  exercise: Exercise
+  onClose: () => void
+}
+
+function ExerciseDetailModal({ exercise, onClose }: ExerciseDetailModalProps) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-light rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-text mb-2">{exercise.spanish_name}</h2>
+              <p className="text-text-muted">{exercise.name}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-text-muted hover:text-text transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="w-full h-64 bg-surface rounded-lg flex items-center justify-center">
+              <IconPhoto size={64} className="text-text-muted/30" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-semibold text-text-muted mb-1">Músculo Principal</p>
+                <p className="text-text">{exercise.primary_muscle_group}</p>
+              </div>
+              {exercise.secondary_muscle_group && (
+                <div>
+                  <p className="text-sm font-semibold text-text-muted mb-1">Músculo Secundario</p>
+                  <p className="text-text">{exercise.secondary_muscle_group}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold text-text-muted mb-1">Equipo</p>
+                <p className="text-text">{exercise.equipment_type}</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-muted mb-1">Tipo</p>
+                <p className="text-text">{exercise.exercise_type || 'Fuerza'}</p>
+              </div>
+            </div>
+
+            {exercise.description && (
+              <div>
+                <p className="text-sm font-semibold text-text-muted mb-2">Descripción</p>
+                <p className="text-text">{exercise.description}</p>
+              </div>
+            )}
+
+            {exercise.instructions && (
+              <div>
+                <p className="text-sm font-semibold text-text-muted mb-2">Instrucciones</p>
+                <p className="text-text whitespace-pre-line">{exercise.instructions}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

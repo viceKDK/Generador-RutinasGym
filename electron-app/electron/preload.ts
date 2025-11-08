@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Export functionality
   export: {
     toWord: (workoutPlan: any) => ipcRenderer.invoke('export:toWord', workoutPlan),
+    toPDF: (workoutPlan: any) => ipcRenderer.invoke('export:toPDF', workoutPlan),
   },
 })
 
@@ -39,6 +40,7 @@ export interface ElectronAPI {
   }
   export: {
     toWord: (workoutPlan: any) => Promise<{ success: boolean; path?: string }>
+    toPDF: (workoutPlan: any) => Promise<{ success: boolean; path?: string }>
   }
 }
 
