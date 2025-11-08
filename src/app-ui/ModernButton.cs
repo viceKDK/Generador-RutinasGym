@@ -7,10 +7,10 @@ namespace GymRoutineGenerator.UI
 {
     public class ModernButton : Button
     {
-        private Color _normalColor = Color.FromArgb(25, 135, 84);
-        private Color _hoverColor = Color.FromArgb(20, 108, 67);
-        private Color _pressedColor = Color.FromArgb(15, 81, 50);
-        private int _borderRadius = 12;
+        private Color _normalColor = PremiumColors.Buttons.PrimaryNormal;
+        private Color _hoverColor = PremiumColors.Buttons.PrimaryHover;
+        private Color _pressedColor = PremiumColors.Buttons.PrimaryPressed;
+        private int _borderRadius = 8;
         private bool _isHovered = false;
         private bool _isPressed = false;
         private System.Windows.Forms.Timer _animationTimer;
@@ -45,10 +45,11 @@ namespace GymRoutineGenerator.UI
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
             BackColor = Color.Transparent;
-            ForeColor = Color.White;
-            Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            ForeColor = PremiumColors.White;
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             Cursor = Cursors.Hand;
             UseVisualStyleBackColor = false;
+            Size = new Size(160, 45);
 
             _animationTimer = new System.Windows.Forms.Timer { Interval = 16 }; // 60 FPS
             _animationTimer.Tick += AnimationTimer_Tick;
@@ -125,7 +126,7 @@ namespace GymRoutineGenerator.UI
             Color currentColor = _normalColor;
             if (!Enabled)
             {
-                currentColor = Color.FromArgb(173, 181, 189);
+                currentColor = PremiumColors.States.Disabled;
             }
             else if (_isPressed)
             {
@@ -162,14 +163,14 @@ namespace GymRoutineGenerator.UI
                 graphics.FillPath(brush, path);
             }
 
-            // Draw border
-            using (var borderPen = new Pen(Color.FromArgb(50, 255, 255, 255), 1))
+            // Draw border (dorado para efecto premium)
+            using (var borderPen = new Pen(PremiumColors.BorderGold, 2))
             {
                 graphics.DrawPath(borderPen, path);
             }
 
             // Draw text
-            var textColor = Enabled ? ForeColor : Color.FromArgb(108, 117, 125);
+            var textColor = Enabled ? ForeColor : PremiumColors.TextSecondary;
             using (var textBrush = new SolidBrush(textColor))
             {
                 var textFormat = new StringFormat
