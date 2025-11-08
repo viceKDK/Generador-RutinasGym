@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconPlus, IconEdit, IconTrash, IconPhoto, IconSearch } from '@tabler/icons-react'
+import { IconPlus, IconEdit, IconTrash, IconPhoto } from '@tabler/icons-react'
 import type { Exercise } from '../models/types'
 import { useExercises } from '../hooks/useExercises'
 
@@ -31,25 +31,24 @@ export default function ExerciseManager() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="section-title">Gestor de Ejercicios</h1>
-          <p className="text-text-muted">Administra ejercicios, imágenes y videos</p>
+          <p className="text-text-secondary">Administra ejercicios, imágenes y videos</p>
         </div>
         <button
           onClick={() => navigate('/manager/create')}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-3 rounded-2xl px-8 py-4 text-white shadow-glow-gold hover:shadow-glow-gold transition-all duration-300 hover:scale-105"
         >
-          <IconPlus size={20} />
-          Nuevo Ejercicio
+          <IconPlus size={24} className="font-bold" />
+          <span className="font-bold text-lg">Nuevo Ejercicio</span>
         </button>
       </div>
 
       {/* Search */}
       <div className="card mb-6">
         <div className="relative">
-          <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted" size={20} />
           <input
             type="text"
-            className="input pl-10"
-            placeholder="Buscar ejercicios..."
+            className="input"
+            placeholder="Buscar ejercicios por nombre..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

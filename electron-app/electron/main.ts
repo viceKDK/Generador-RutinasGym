@@ -23,7 +23,14 @@ function createWindow() {
     },
     icon: path.join(__dirname, '../../gym_icon_512.png'),
     title: 'Generador de Rutinas de Gimnasio',
-    backgroundColor: '#ffffff',
+    // Tema premium: fondo oscuro + overlay de barra de título con acento dorado
+    backgroundColor: '#121212',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#1C1C1E',
+      symbolColor: '#D4AF37',
+      height: 32,
+    },
   })
 
   // Development mode

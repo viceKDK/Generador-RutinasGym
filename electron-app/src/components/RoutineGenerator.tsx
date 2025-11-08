@@ -9,7 +9,7 @@ export default function RoutineGenerator() {
   const [useAI, setUseAI] = useState(true)
 
   const { loading, error, generatedPlan, generateRoutine, checkOllamaStatus } = useRoutineGenerator()
-  const { loading: exportLoading, exportToWord, downloadHTML } = useExport()
+  const { loading: exportLoading, exportToWord } = useExport()
 
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
@@ -40,10 +40,7 @@ export default function RoutineGenerator() {
     }
   }
 
-  const handleExportToHTML = async () => {
-    if (!generatedPlan) return
-    await downloadHTML(generatedPlan)
-  }
+  // Eliminada función de exportar a HTML
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
@@ -85,7 +82,6 @@ export default function RoutineGenerator() {
         <ResultStep
           plan={generatedPlan}
           onExportWord={handleExportToWord}
-          onExportHTML={handleExportToHTML}
           loading={exportLoading}
           onNewRoutine={() => {
             setStep(1)
@@ -133,9 +129,14 @@ interface ProfileStepProps {
 function ProfileStep({ profile, onChange, onNext }: ProfileStepProps) {
   return (
     <div className="card space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <IconUserCircle size={32} className="text-primary" />
-        <h2 className="text-2xl font-bold">Información Personal</h2>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl shadow-glow-violet">
+          <IconUserCircle size={36} className="text-white" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">Información Personal</h2>
+          <p className="text-text-secondary text-sm">Cuéntanos sobre ti</p>
+        </div>
       </div>
 
       <div>
@@ -206,7 +207,7 @@ function ProfileStep({ profile, onChange, onNext }: ProfileStepProps) {
       </div>
 
       <button
-        className="btn-primary w-full"
+        className="btn-primary w-full text-white font-bold"
         onClick={onNext}
         disabled={!profile.name}
       >
@@ -243,9 +244,14 @@ function GoalsStep({ profile, onChange, onBack, onGenerate, loading }: GoalsStep
 
   return (
     <div className="card space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <IconTarget size={32} className="text-primary" />
-        <h2 className="text-2xl font-bold">Objetivos de Entrenamiento</h2>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl shadow-glow-violet">
+          <IconTarget size={36} className="text-white" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">Objetivos de Entrenamiento</h2>
+          <p className="text-text-secondary text-sm">¿Qué quieres lograr?</p>
+        </div>
       </div>
 
       <div>
@@ -255,10 +261,10 @@ function GoalsStep({ profile, onChange, onBack, onGenerate, loading }: GoalsStep
             <button
               key={goal}
               onClick={() => toggleGoal(goal)}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`p-4 rounded-xl border-2 transition-all duration-300 font-semibold ${
                 profile.goals.includes(goal)
-                  ? 'border-primary bg-primary/10 text-white'
-                  : 'border-border hover:border-primary/50 text-text-muted'
+                  ? 'border-primary bg-gradient-to-br from-primary to-primary-dark text-white shadow-glow-gold'
+                  : 'border-border hover:border-primary/50 text-text-muted hover:bg-surface'
               }`}
             >
               {goal}
@@ -268,11 +274,11 @@ function GoalsStep({ profile, onChange, onBack, onGenerate, loading }: GoalsStep
       </div>
 
       <div className="flex gap-4">
-        <button className="btn-outline flex-1" onClick={onBack}>
+        <button className="btn-outline flex-1 text-white font-semibold" onClick={onBack}>
           Atrás
         </button>
         <button
-          className="btn-primary flex-1 flex items-center justify-center gap-2"
+          className="btn-primary flex-1 flex items-center justify-center gap-2 text-white font-bold"
           onClick={onGenerate}
           disabled={profile.goals.length === 0 || loading}
         >
@@ -296,12 +302,11 @@ function GoalsStep({ profile, onChange, onBack, onGenerate, loading }: GoalsStep
 interface ResultStepProps {
   plan: WorkoutPlan
   onExportWord: () => void
-  onExportHTML: () => void
   loading: boolean
   onNewRoutine: () => void
 }
 
-function ResultStep({ plan, onExportWord, onExportHTML, loading, onNewRoutine }: ResultStepProps) {
+function ResultStep({ plan, onExportWord, loading, onNewRoutine }: ResultStepProps) {
   return (
     <div className="space-y-6">
       <div className="card">
@@ -343,15 +348,12 @@ function ResultStep({ plan, onExportWord, onExportHTML, loading, onNewRoutine }:
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <button className="btn-outline" onClick={onNewRoutine}>
+      <div className="grid grid-cols-2 gap-4">
+        <button className="btn-outline text-white font-semibold" onClick={onNewRoutine}>
           Nueva Rutina
         </button>
-        <button className="btn-primary" onClick={onExportWord} disabled={loading}>
+        <button className="btn-primary text-white font-bold" onClick={onExportWord} disabled={loading}>
           {loading ? 'Exportando...' : 'Exportar a Word'}
-        </button>
-        <button className="btn-secondary" onClick={onExportHTML} disabled={loading}>
-          Exportar a HTML
         </button>
       </div>
     </div>

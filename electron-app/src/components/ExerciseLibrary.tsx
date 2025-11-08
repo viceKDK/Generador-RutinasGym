@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { IconSearch, IconBarbell, IconPhoto, IconFolder } from '@tabler/icons-react'
+import { IconBarbell, IconPhoto, IconFolder } from '@tabler/icons-react'
 import type { Exercise } from '../models/types'
 import { useExercises } from '../hooks/useExercises'
 
@@ -28,10 +28,10 @@ export default function ExerciseLibrary() {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="section-title">Biblioteca de Ejercicios</h1>
-        <div className="text-sm text-text-muted bg-surface px-4 py-2 rounded-lg">
-          {filteredExercises.length} ejercicios encontrados
+        <div className="text-sm text-text-secondary bg-surface-light px-4 py-2 rounded-lg border border-border-gold">
+          <span className="font-semibold text-primary">{filteredExercises.length}</span> ejercicios
         </div>
       </div>
 
@@ -39,17 +39,14 @@ export default function ExerciseLibrary() {
       <div className="card mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="label">Buscar</label>
-            <div className="relative">
-              <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted" size={20} />
-              <input
-                type="text"
-                className="input pl-10"
-                placeholder="Buscar ejercicios..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+            <label className="label">Buscar Ejercicio</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="Nombre del ejercicio..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <div>
@@ -59,7 +56,7 @@ export default function ExerciseLibrary() {
               value={selectedMuscle}
               onChange={(e) => setSelectedMuscle(e.target.value)}
             >
-              <option value="">Todos</option>
+              <option value="">Todos los grupos</option>
               <option value="Pecho">Pecho</option>
               <option value="Espalda">Espalda</option>
               <option value="Hombros">Hombros</option>
@@ -76,7 +73,7 @@ export default function ExerciseLibrary() {
               value={selectedEquipment}
               onChange={(e) => setSelectedEquipment(e.target.value)}
             >
-              <option value="">Todos</option>
+              <option value="">Todo el equipo</option>
               <option value="Barra">Barra</option>
               <option value="Mancuernas">Mancuernas</option>
               <option value="Máquina">Máquina</option>
@@ -93,7 +90,7 @@ export default function ExerciseLibrary() {
           <div className="spinner" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredExercises.map((exercise) => (
             <ExerciseCard key={exercise.id} exercise={exercise} />
           ))}
@@ -163,12 +160,12 @@ function ExerciseCard({ exercise }: ExerciseCardProps) {
     <div className="card hover:shadow-xl transition-all duration-300 group animate-scale-in">
       {/* Image Preview */}
       <div
-        className="relative w-full h-48 bg-surface rounded-lg mb-4 overflow-hidden cursor-pointer"
+        className="relative w-full h-36 bg-surface rounded-lg mb-3 overflow-hidden cursor-pointer"
         onClick={handleOpenFolder}
       >
         {imageLoading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
-            <div className="spinner" style={{ width: '32px', height: '32px', borderWidth: '2px' }} />
+            <div className="spinner" style={{ width: '24px', height: '24px', borderWidth: '2px' }} />
           </div>
         ) : imagePath ? (
           <>
@@ -179,64 +176,39 @@ function ExerciseCard({ exercise }: ExerciseCardProps) {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-2">
-                <IconFolder size={48} className="text-white" />
-                <span className="text-white font-semibold text-sm">Abrir Carpeta</span>
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1">
+                <IconFolder size={32} className="text-white" />
+                <span className="text-white font-semibold text-xs">Ver carpeta</span>
               </div>
             </div>
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
-            <IconPhoto size={48} className="text-text-muted/30" />
+            <IconPhoto size={32} className="text-text-muted/30" />
           </div>
         )}
-        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-semibold text-primary">
+        <div className="absolute top-2 right-2 bg-secondary/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-xs font-semibold text-white">
           {exercise.exercise_type || 'Fuerza'}
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h3 className="font-bold text-lg text-text group-hover:text-primary transition-colors">
+      <div className="space-y-2">
+        <h3 className="font-bold text-sm text-text group-hover:text-primary transition-colors line-clamp-2">
           {exercise.spanish_name}
         </h3>
 
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-primary"></div>
-            <span className="text-text-muted">{exercise.primary_muscle_group}</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+            <span className="text-text-muted truncate">{exercise.primary_muscle_group}</span>
           </div>
-          {exercise.secondary_muscle_group && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-secondary"></div>
-              <span className="text-text-muted">{exercise.secondary_muscle_group}</span>
-            </div>
-          )}
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <span className="px-3 py-1 bg-surface rounded-full text-text-muted">
+        <div className="flex items-center gap-1 text-xs">
+          <span className="px-2 py-0.5 bg-surface rounded-full text-text-muted truncate">
             {exercise.equipment_type}
           </span>
         </div>
-
-        {exercise.description && (
-          <p className="text-sm text-text-muted line-clamp-2">
-            {exercise.description}
-          </p>
-        )}
-
-        {exercise.video_url && (
-          <a
-            href={exercise.video_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-primary hover:text-primary-dark text-sm font-semibold transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <IconFolder size={16} />
-            Ver Video Tutorial
-          </a>
-        )}
       </div>
     </div>
   )

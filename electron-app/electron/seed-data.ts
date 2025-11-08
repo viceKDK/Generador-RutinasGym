@@ -12,6 +12,11 @@ export interface SeedExercise {
   exercise_type: string
 }
 
+// Ejercicios de ejemplo deshabilitados - Base de datos vacía para que el usuario agregue sus propios ejercicios
+export const seedExercises: SeedExercise[] = []
+
+/*
+// EJERCICIOS COMENTADOS - Descomentar si se desea inicializar con datos de ejemplo
 export const seedExercises: SeedExercise[] = [
   // PECHO
   {
@@ -475,6 +480,7 @@ export const seedExercises: SeedExercise[] = [
     exercise_type: 'Cardio',
   },
 ]
+*/
 
 /**
  * Inserta los ejercicios seed en la base de datos
@@ -490,7 +496,7 @@ export function seedDatabase(db: Database.Database): number {
     return count.count
   }
 
-  console.log('Seeding database with exercises...')
+  console.log('No se cargarán ejercicios de ejemplo - Base de datos vacía')
 
   const insert = db.prepare(`
     INSERT INTO exercises (
