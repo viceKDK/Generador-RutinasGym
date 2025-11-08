@@ -21,6 +21,10 @@ export default {
           light: '#2a2a2a',
         },
         border: '#333333',
+        text: {
+          DEFAULT: '#ffffff',
+          muted: '#999999',
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',

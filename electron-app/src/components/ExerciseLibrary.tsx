@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconSearch, IconFilter, IconDumbbell } from '@tabler/icons-react'
+import { IconSearch, IconFilter, IconBarbell } from '@tabler/icons-react'
 import type { Exercise } from '../models/types'
 import { useExercises } from '../hooks/useExercises'
 
@@ -90,7 +90,7 @@ export default function ExerciseLibrary() {
 
       {!loading && filteredExercises.length === 0 && (
         <div className="card text-center py-12">
-          <IconDumbbell size={64} className="text-text-muted mx-auto mb-4" />
+          <IconBarbell size={64} className="text-text-muted mx-auto mb-4" />
           <p className="text-text-muted">No se encontraron ejercicios</p>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import { IconHome, IconDumbbell, IconFileText, IconSettings } from '@tabler/icons-react'
+import { IconHome, IconBarbell, IconFileText, IconSettings } from '@tabler/icons-react'
 import HomePage from './components/HomePage'
 import RoutineGenerator from './components/RoutineGenerator'
 import ExerciseLibrary from './components/ExerciseLibrary'
@@ -16,7 +16,7 @@ function App() {
         <header className="bg-surface border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <IconDumbbell size={32} className="text-primary" />
+              <IconBarbell size={32} className="text-primary" />
               <h1 className="text-2xl font-bold gradient-text">
                 Generador de Rutinas de Gimnasio
               </h1>
@@ -40,7 +40,7 @@ function App() {
               />
               <NavLink
                 to="/generator"
-                icon={<IconDumbbell size={20} />}
+                icon={<IconBarbell size={20} />}
                 label="Generar Rutina"
                 active={activeTab === 'generator'}
                 onClick={() => setActiveTab('generator')}
