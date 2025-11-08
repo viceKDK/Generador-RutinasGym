@@ -28,7 +28,7 @@ namespace GymRoutineGenerator.UI
 
             for (int i = 0; i < steps.Length; i++)
             {
-                UpdateStatus($" {steps[i]}", Color.FromArgb(255, 193, 7));
+                UpdateStatus($" {steps[i]}", PremiumColors.GoldLight);
 
                 // Execute the step action
                 if (stepAction != null)

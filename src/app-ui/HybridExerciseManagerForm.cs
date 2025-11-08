@@ -132,7 +132,7 @@ namespace GymRoutineGenerator.UI
             StartPosition = FormStartPosition.CenterScreen;
             ShowInTaskbar = false;
             WindowState = FormWindowState.Maximized;
-            BackColor = Color.FromArgb(240, 242, 247);  // Mismo fondo que MainForm
+            BackColor = PremiumColors.BackgroundDark;
             Font = new Font("Segoe UI", 10F);
 
             // Atajo: ESC para volver
@@ -169,7 +169,7 @@ namespace GymRoutineGenerator.UI
             // Status bar
             var statusStrip = new StatusStrip
             {
-                BackColor = Color.White,
+                BackColor = PremiumColors.BackgroundCard,
                 SizingGrip = false
             };
             statusLabel = new ToolStripStatusLabel
@@ -221,21 +221,21 @@ namespace GymRoutineGenerator.UI
                 IntegralHeight = false,
                 Font = new Font("Segoe UI", 10.5F),
                 DisplayMember = "ExerciseName",
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.TextPrimary,
                 Margin = new Padding(0, 0, 0, 8)
             };
             exerciseListBox.SelectedIndexChanged += ExerciseListBox_SelectedIndexChanged;
             layout.Controls.Add(exerciseListBox, 0, 1);
 
             // Botón nuevo
-            newExerciseButton = CreateButton("Nuevo ejercicio", Color.FromArgb(25, 135, 84), Color.White);
+            newExerciseButton = CreateButton("Nuevo ejercicio", PremiumColors.Buttons.SuccessNormal, PremiumColors.White);
             newExerciseButton.Click += (s, e) => CreateNewExercise();
             newExerciseButton.Margin = new Padding(0, 0, 0, 8);
             layout.Controls.Add(newExerciseButton, 0, 2);
 
             // Botón eliminar
-            deleteExerciseButton = CreateButton("Eliminar", Color.FromArgb(220, 53, 69), Color.White);
+            deleteExerciseButton = CreateButton("Eliminar", PremiumColors.States.Error, PremiumColors.White);
             deleteExerciseButton.Click += (s, e) => DeleteCurrentExercise();
             deleteExerciseButton.Enabled = false;
             deleteExerciseButton.Margin = new Padding(0, 0, 0, 0);
@@ -279,7 +279,7 @@ namespace GymRoutineGenerator.UI
                 Dock = DockStyle.Fill,
                 SizeMode = PictureBoxSizeMode.Zoom,
                 BorderStyle = BorderStyle.FixedSingle,
-                BackColor = Color.White,
+                BackColor = PremiumColors.BackgroundCard,
                 Image = _placeholderImage,
                 AllowDrop = true
             };
@@ -292,7 +292,7 @@ namespace GymRoutineGenerator.UI
             {
                 Text = "Selecciona un ejercicio",
                 Font = new Font("Segoe UI", 13F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                ForeColor = PremiumColors.TextPrimary,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Padding = new Padding(0, 6, 0, 4)
@@ -304,7 +304,7 @@ namespace GymRoutineGenerator.UI
             {
                 Text = "",
                 Font = new Font("Segoe UI", 9.5F),
-                ForeColor = Color.FromArgb(108, 117, 125),
+                ForeColor = PremiumColors.TextSecondary,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Padding = new Padding(0, 0, 0, 6)
@@ -316,7 +316,7 @@ namespace GymRoutineGenerator.UI
             {
                 Text = "Video del ejercicio",
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                ForeColor = PremiumColors.TextPrimary,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(0, 10, 0, 6),
@@ -329,7 +329,7 @@ namespace GymRoutineGenerator.UI
             {
                 Dock = DockStyle.Fill,
                 BorderStyle = BorderStyle.FixedSingle,
-                BackColor = Color.Black,
+                BackColor = PremiumColors.Black,
                 Visible = false,  // Oculto por defecto
                 Padding = new Padding(0)
             };
@@ -349,8 +349,8 @@ namespace GymRoutineGenerator.UI
                 Text = "⟳",
                 Font = new Font("Segoe UI", 14F, FontStyle.Bold),
                 Size = new Size(40, 40),
-                BackColor = Color.FromArgb(13, 110, 253),
-                ForeColor = Color.White,
+                BackColor = PremiumColors.Buttons.PrimaryNormal,
+                ForeColor = PremiumColors.White,
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -382,7 +382,7 @@ namespace GymRoutineGenerator.UI
             layout.Controls.Add(videoPanel, 0, 4);
 
             // Botón cambiar imagen (ahora después del video)
-            changeImageButton = CreateButton("Cambiar imagen", Color.FromArgb(13, 110, 253), Color.White);
+            changeImageButton = CreateButton("Cambiar imagen", PremiumColors.Buttons.PrimaryNormal, PremiumColors.White);
             // No usar Fill para que no ocupe espacio extra y potencialmente solape el panel de video.
             changeImageButton.Dock = DockStyle.Top;
             changeImageButton.Height = 42;
@@ -392,7 +392,7 @@ namespace GymRoutineGenerator.UI
             layout.Controls.Add(changeImageButton, 0, 5);
 
             // Botón abrir carpeta (ahora después del video)
-            openFolderButton = CreateButton("Abrir carpeta", Color.FromArgb(108, 117, 125), Color.White);
+            openFolderButton = CreateButton("Abrir carpeta", PremiumColors.Buttons.SecondaryNormal, PremiumColors.White);
             openFolderButton.Dock = DockStyle.Top;
             openFolderButton.Height = 42;
             openFolderButton.Margin = new Padding(0, 2, 0, 12);
@@ -536,7 +536,7 @@ namespace GymRoutineGenerator.UI
             videoContentPanel.Controls.Add(editVideoUrlTextBox);
 
             // Botón para abrir video en navegador
-            openVideoButton = CreateButton("Abrir en navegador", Color.FromArgb(13, 110, 253), Color.White);
+            openVideoButton = CreateButton("Abrir en navegador", PremiumColors.Buttons.PrimaryNormal, PremiumColors.White);
             openVideoButton.Dock = DockStyle.Top;
             openVideoButton.Height = 38;
             openVideoButton.Margin = new Padding(0, 6, 0, 12);
@@ -556,7 +556,7 @@ namespace GymRoutineGenerator.UI
                 Margin = new Padding(0, 12, 0, 0)
             };
 
-            saveButton = CreateButton("Guardar cambios", Color.FromArgb(25, 135, 84), Color.White);
+            saveButton = CreateButton("Guardar cambios", PremiumColors.Buttons.SuccessNormal, PremiumColors.White);
             saveButton.Click += (s, e) => SaveCurrentExercise();
             saveButton.Enabled = false;
             saveButton.Width = 180;
@@ -564,7 +564,7 @@ namespace GymRoutineGenerator.UI
             saveButton.Margin = new Padding(0, 0, 8, 0);
             buttonsPanel.Controls.Add(saveButton);
 
-            cancelButton = CreateButton("Cancelar", Color.FromArgb(108, 117, 125), Color.White);
+            cancelButton = CreateButton("Cancelar", PremiumColors.Buttons.SecondaryNormal, PremiumColors.White);
             cancelButton.Click += (s, e) => CancelEdit();
             cancelButton.Enabled = false;
             cancelButton.Width = 140;
@@ -597,17 +597,17 @@ namespace GymRoutineGenerator.UI
                 Text = $"{title} ▾",
                 AutoSize = true,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(233, 236, 239),
-                ForeColor = Color.FromArgb(52, 58, 64),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.TextSecondary,
                 Padding = new Padding(8, 4, 8, 4)
             };
-            button.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+            button.FlatAppearance.BorderColor = PremiumColors.BorderGold;
 
             var panel = new Panel
             {
                 Dock = DockStyle.Fill,
                 Padding = new Padding(8),
-                BackColor = Color.FromArgb(248, 249, 250),
+                BackColor = PremiumColors.BackgroundCard,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
@@ -640,7 +640,7 @@ namespace GymRoutineGenerator.UI
             var container = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
+                BackColor = PremiumColors.BackgroundCard,
                 BorderStyle = BorderStyle.None,
                 Margin = new Padding(8, 6, 8, 6),
                 Padding = new Padding(0),
@@ -682,14 +682,14 @@ namespace GymRoutineGenerator.UI
             var titleBar = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(245, 247, 250)
+                BackColor = PremiumColors.BackgroundCard
             };
 
             var titleLabel = new Label
             {
                 Text = title,
                 Font = new Font("Segoe UI", 13F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 37, 41),
+                ForeColor = PremiumColors.TextPrimary,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(20, 0, 0, 0)
@@ -745,7 +745,7 @@ namespace GymRoutineGenerator.UI
                 Text = text,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(52, 58, 64),
+                ForeColor = PremiumColors.TextSecondary,
                 Padding = new Padding(0, 8, 0, 4)
             };
         }
@@ -757,7 +757,7 @@ namespace GymRoutineGenerator.UI
                 Text = text,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(52, 58, 64),
+                ForeColor = PremiumColors.TextSecondary,
                 Padding = new Padding(0, 8, 0, 4)
             };
         }
@@ -769,8 +769,8 @@ namespace GymRoutineGenerator.UI
                 Text = text,
                 Dock = DockStyle.Top,
                 Height = 36,
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(52, 58, 64),
+                BackColor = PremiumColors.BackgroundCard,
+                ForeColor = PremiumColors.TextSecondary,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -779,16 +779,16 @@ namespace GymRoutineGenerator.UI
                 Cursor = Cursors.Hand
             };
             button.FlatAppearance.BorderSize = 1;
-            button.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
+            button.FlatAppearance.BorderColor = PremiumColors.BorderGold;
 
             // Efectos hover
             button.MouseEnter += (s, e) =>
             {
-                button.BackColor = Color.FromArgb(233, 236, 239);
+                button.BackColor = PremiumColors.BackgroundCard;
             };
             button.MouseLeave += (s, e) =>
             {
-                button.BackColor = Color.FromArgb(245, 247, 250);
+                button.BackColor = PremiumColors.BackgroundCard;
             };
 
             return button;
@@ -800,7 +800,7 @@ namespace GymRoutineGenerator.UI
             using (var g = Graphics.FromImage(bitmap))
             {
                 g.Clear(Color.FromArgb(248, 249, 250));
-                using var pen = new Pen(Color.FromArgb(206, 212, 218), 3);
+                using var pen = new Pen(PremiumColors.BorderGold, 3);
                 g.DrawRectangle(pen, 20, 20, PreviewImageSize.Width - 40, PreviewImageSize.Height - 40);
 
                 using var font = new Font("Segoe UI", 16F, FontStyle.Bold);

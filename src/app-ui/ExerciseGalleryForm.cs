@@ -65,14 +65,14 @@ namespace GymRoutineGenerator.UI
             WindowState = FormWindowState.Maximized;
             ShowInTaskbar = false;
             MinimumSize = new Size(1280, 800);
-            BackColor = Color.White;
+            BackColor = PremiumColors.BackgroundDark;
 
             var topPanel = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 128,
                 Padding = new Padding(24, 24, 24, 16),
-                BackColor = Color.White
+                BackColor = PremiumColors.BackgroundCard
             };
 
             var topFlow = new FlowLayoutPanel
@@ -90,8 +90,9 @@ namespace GymRoutineGenerator.UI
                 Text = "Generador de Rutinas · Galeria de ejercicios",
                 AutoSize = true,
                 Font = new Font("Segoe UI", 16f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(34, 38, 43),
-                Margin = new Padding(0, 0, 0, 16)
+                ForeColor = PremiumColors.Gold,
+                Margin = new Padding(0, 0, 0, 16),
+                BackColor = Color.Transparent
             };
             topFlow.Controls.Add(_titleLabel);
             topFlow.SetFlowBreak(_titleLabel, true);
@@ -101,7 +102,10 @@ namespace GymRoutineGenerator.UI
                 PlaceholderText = "Buscar ejercicio...",
                 Width = 340,
                 Margin = new Padding(0, 0, 20, 0),
-                Height = 40
+                Height = 40,
+                BackColor = PremiumColors.BackgroundDark,
+                ForeColor = PremiumColors.White,
+                BorderStyle = BorderStyle.FixedSingle
             };
             _searchTextBox.TextChanged += SearchTextBox_TextChanged;
 
@@ -110,7 +114,10 @@ namespace GymRoutineGenerator.UI
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Width = 200,
                 Margin = new Padding(0, 0, 20, 0),
-                Height = 40
+                Height = 40,
+                BackColor = PremiumColors.BackgroundDark,
+                ForeColor = PremiumColors.White,
+                FlatStyle = FlatStyle.Flat
             };
             _dataSourceComboBox.Items.AddRange(new object[]
             {
@@ -139,8 +146,8 @@ namespace GymRoutineGenerator.UI
                 Width = 220,
                 Height = 48,
                 Margin = new Padding(0),
-                BackColor = Color.FromArgb(54, 79, 199),
-                ForeColor = Color.White,
+                BackColor = PremiumColors.Buttons.PrimaryNormal,
+                ForeColor = PremiumColors.White,
                 FlatStyle = FlatStyle.Flat,
                 UseVisualStyleBackColor = false
             };
@@ -161,8 +168,8 @@ namespace GymRoutineGenerator.UI
                 Height = 30,
                 Padding = new Padding(20, 4, 20, 4),
                 TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Color.FromArgb(60, 60, 68),
-                BackColor = Color.White
+                ForeColor = PremiumColors.TextSecondary,
+                BackColor = PremiumColors.BackgroundCard
             };
 
             _galleryPanel = new FlowLayoutPanel
@@ -172,7 +179,7 @@ namespace GymRoutineGenerator.UI
                 WrapContents = true,
                 FlowDirection = FlowDirection.LeftToRight,
                 Padding = new Padding(28, 16, 28, 28),
-                BackColor = Color.White
+                BackColor = PremiumColors.BackgroundDark
             };
 
             BuildContextMenu();
@@ -602,11 +609,11 @@ namespace GymRoutineGenerator.UI
 
     internal sealed class ExerciseGalleryCard : Panel
     {
-        private static readonly Color BaseColor = Color.White;
-        private static readonly Color HoverColor = Color.FromArgb(247, 247, 249);
-        private static readonly Color ActiveColor = Color.FromArgb(235, 240, 255);
-        private static readonly Color BorderColor = Color.FromArgb(218, 220, 224);
-        private static readonly Color SelectedBorderColor = Color.FromArgb(82, 133, 246);
+        private static readonly Color BaseColor = PremiumColors.BackgroundCard;
+        private static readonly Color HoverColor = PremiumColors.Cards.BackgroundLight;
+        private static readonly Color ActiveColor = Color.FromArgb(45, 35, 80); // Violeta oscuro para selección
+        private static readonly Color BorderColor = PremiumColors.BorderGold;
+        private static readonly Color SelectedBorderColor = PremiumColors.GoldLight;
 
         private readonly Panel _imagePanel;
         private readonly Label _placeholderLabel;
@@ -637,7 +644,7 @@ namespace GymRoutineGenerator.UI
             {
                 Dock = DockStyle.Top,
                 Height = 170,
-                BackColor = Color.White
+                BackColor = PremiumColors.BackgroundDark
             };
             _imagePanel.Paint += ImagePanel_Paint;
 
@@ -654,11 +661,12 @@ namespace GymRoutineGenerator.UI
                 AutoSize = false,
                 Height = 68,
                 Font = new Font("Segoe UI", 12.5f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(44, 48, 52),
+                ForeColor = PremiumColors.Gold,
                 TextAlign = ContentAlignment.TopLeft,
                 AutoEllipsis = false,
                 UseMnemonic = false,
-                Padding = new Padding(0, 0, 0, 6)
+                Padding = new Padding(0, 0, 0, 6),
+                BackColor = Color.Transparent
             };
 
             _detailLabel = new Label
@@ -667,8 +675,9 @@ namespace GymRoutineGenerator.UI
                 AutoSize = false,
                 Height = 44,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
-                ForeColor = Color.FromArgb(120, 124, 130),
-                TextAlign = ContentAlignment.TopLeft
+                ForeColor = PremiumColors.TextSecondary,
+                TextAlign = ContentAlignment.TopLeft,
+                BackColor = Color.Transparent
             };
 
             _placeholderLabel = new Label
@@ -676,9 +685,9 @@ namespace GymRoutineGenerator.UI
                 Dock = DockStyle.Fill,
                 Text = "Sin imagen",
                 Font = new Font("Segoe UI", 9f, FontStyle.Italic),
-                ForeColor = Color.FromArgb(150, 150, 156),
+                ForeColor = PremiumColors.TextSecondary,
                 TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.FromArgb(248, 248, 250)
+                BackColor = PremiumColors.BackgroundDark
             };
             _imagePanel.Controls.Add(_placeholderLabel);
 
@@ -802,7 +811,7 @@ namespace GymRoutineGenerator.UI
 
         private void ImagePanel_Paint(object? sender, PaintEventArgs e)
         {
-            e.Graphics.Clear(Color.White);
+            e.Graphics.Clear(PremiumColors.BackgroundDark);
 
             if (_thumbnail == null)
             {
