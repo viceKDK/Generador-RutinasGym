@@ -37,13 +37,13 @@ namespace GymRoutineGenerator.UI
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = Color.FromArgb(248, 249, 250);
+            this.BackColor = PremiumColors.BackgroundDark;
 
             var mainPanel = new Panel
             {
                 Dock = DockStyle.Fill,
                 Padding = new Padding(20),
-                BackColor = Color.White
+                BackColor = PremiumColors.BackgroundCard
             };
 
             // Titulo
@@ -51,10 +51,11 @@ namespace GymRoutineGenerator.UI
             {
                 Text = "Informacion del Nuevo Ejercicio",
                 Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(25, 135, 84),
+                ForeColor = PremiumColors.Gold,
                 Dock = DockStyle.Top,
                 Height = 40,
-                TextAlign = ContentAlignment.MiddleLeft
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.Transparent
             };
 
             // Nombre del ejercicio
@@ -64,7 +65,9 @@ namespace GymRoutineGenerator.UI
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Dock = DockStyle.Top,
                 Height = 25,
-                TextAlign = ContentAlignment.BottomLeft
+                TextAlign = ContentAlignment.BottomLeft,
+                ForeColor = PremiumColors.TextPrimary,
+                BackColor = Color.Transparent
             };
 
             exerciseNameTextBox = new TextBox
@@ -72,7 +75,9 @@ namespace GymRoutineGenerator.UI
                 Dock = DockStyle.Top,
                 Height = 30,
                 Font = new Font("Segoe UI", 11F),
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = PremiumColors.BackgroundDark,
+                ForeColor = PremiumColors.White
             };
 
             // Descripcion
@@ -82,7 +87,9 @@ namespace GymRoutineGenerator.UI
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Dock = DockStyle.Top,
                 Height = 25,
-                TextAlign = ContentAlignment.BottomLeft
+                TextAlign = ContentAlignment.BottomLeft,
+                ForeColor = PremiumColors.TextPrimary,
+                BackColor = Color.Transparent
             };
 
             descriptionTextBox = new TextBox
@@ -92,7 +99,9 @@ namespace GymRoutineGenerator.UI
                 Font = new Font("Segoe UI", 10F),
                 BorderStyle = BorderStyle.FixedSingle,
                 Multiline = true,
-                ScrollBars = ScrollBars.Vertical
+                ScrollBars = ScrollBars.Vertical,
+                BackColor = PremiumColors.BackgroundDark,
+                ForeColor = PremiumColors.White
             };
 
             // Palabras clave
@@ -102,7 +111,9 @@ namespace GymRoutineGenerator.UI
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Dock = DockStyle.Top,
                 Height = 25,
-                TextAlign = ContentAlignment.BottomLeft
+                TextAlign = ContentAlignment.BottomLeft,
+                ForeColor = PremiumColors.TextPrimary,
+                BackColor = Color.Transparent
             };
 
             keywordsTextBox = new TextBox
@@ -110,7 +121,9 @@ namespace GymRoutineGenerator.UI
                 Dock = DockStyle.Top,
                 Height = 30,
                 Font = new Font("Segoe UI", 10F),
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = PremiumColors.BackgroundDark,
+                ForeColor = PremiumColors.White
             };
 
             // Grupos musculares
@@ -120,7 +133,9 @@ namespace GymRoutineGenerator.UI
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Dock = DockStyle.Top,
                 Height = 25,
-                TextAlign = ContentAlignment.BottomLeft
+                TextAlign = ContentAlignment.BottomLeft,
+                ForeColor = PremiumColors.TextPrimary,
+                BackColor = Color.Transparent
             };
 
             muscleGroupsCheckedListBox = new CheckedListBox
@@ -129,7 +144,9 @@ namespace GymRoutineGenerator.UI
                 Height = 120,
                 Font = new Font("Segoe UI", 10F),
                 BorderStyle = BorderStyle.FixedSingle,
-                CheckOnClick = true
+                CheckOnClick = true,
+                BackColor = PremiumColors.BackgroundDark,
+                ForeColor = PremiumColors.White
             };
 
             // Cargar grupos musculares disponibles
@@ -164,7 +181,9 @@ namespace GymRoutineGenerator.UI
                 Text = "Cancelar",
                 Size = new Size(120, 40),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                NormalColor = Color.FromArgb(108, 117, 125),
+                NormalColor = PremiumColors.Buttons.SecondaryNormal,
+                HoverColor = PremiumColors.Buttons.SecondaryHover,
+                PressedColor = PremiumColors.Buttons.SecondaryPressed,
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 DialogResult = DialogResult.Cancel
             };
@@ -175,7 +194,9 @@ namespace GymRoutineGenerator.UI
                 Text = "Agregar",
                 Size = new Size(120, 40),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                NormalColor = Color.FromArgb(40, 167, 69),
+                NormalColor = PremiumColors.Buttons.SuccessNormal,
+                HoverColor = PremiumColors.Buttons.SuccessHover,
+                PressedColor = PremiumColors.Buttons.SuccessPressed,
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 DialogResult = DialogResult.OK
             };
