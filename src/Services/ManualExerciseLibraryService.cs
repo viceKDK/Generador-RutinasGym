@@ -26,9 +26,7 @@ namespace GymRoutineGenerator.Services
     {
         private readonly ExerciseImageSearchService _searchService;
         private readonly SQLiteExerciseImageDatabase _primaryDatabase;
-        private readonly SecondaryExerciseDatabase _secondaryDatabase;
         private readonly Lazy<IReadOnlyList<ExerciseIndexEntry>> _primaryIndex;
-        private readonly Lazy<IReadOnlyList<ExerciseIndexEntry>> _secondaryIndex;
         private readonly string? _docsExercisesPath;
         private readonly Lazy<Dictionary<string, string>> _docsImageLookup;
 
@@ -43,16 +41,13 @@ namespace GymRoutineGenerator.Services
         public ManualExerciseLibraryService(
             ExerciseImageSearchService? searchService = null,
             SQLiteExerciseImageDatabase? primaryDatabase = null,
-            SecondaryExerciseDatabase? secondaryDatabase = null,
             int thumbnailCacheCapacity = 100)
         {
             _searchService = searchService ?? new ExerciseImageSearchService();
             _primaryDatabase = primaryDatabase ?? new SQLiteExerciseImageDatabase();
-            _secondaryDatabase = secondaryDatabase ?? new SecondaryExerciseDatabase();
             _cacheCapacity = Math.Max(10, thumbnailCacheCapacity);
 
             _primaryIndex = new Lazy<IReadOnlyList<ExerciseIndexEntry>>(BuildPrimaryIndex, LazyThreadSafetyMode.ExecutionAndPublication);
-            _secondaryIndex = new Lazy<IReadOnlyList<ExerciseIndexEntry>>(BuildSecondaryIndex, LazyThreadSafetyMode.ExecutionAndPublication);
             _docsExercisesPath = FindDocsEjerciciosPath(AppDomain.CurrentDomain.BaseDirectory);
             _docsImageLookup = new Lazy<Dictionary<string, string>>(BuildDocsImageLookup, LazyThreadSafetyMode.ExecutionAndPublication);
         }
@@ -62,7 +57,6 @@ namespace GymRoutineGenerator.Services
         /// </summary>
         public IReadOnlyList<ExerciseGalleryItem> Search(
             string query,
-            ManualExerciseDataSource dataSource = ManualExerciseDataSource.Primary,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -79,7 +73,7 @@ namespace GymRoutineGenerator.Services
             var results = new List<ExerciseGalleryItem>();
             var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var entry in EnumerateIndex(dataSource))
+            foreach (var entry in _primaryIndex.Value)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -119,16 +113,6 @@ namespace GymRoutineGenerator.Services
             if (!string.IsNullOrWhiteSpace(metadata?.ImagePath))
             {
                 var candidate = Path.GetFullPath(metadata.ImagePath);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-
-            var secondary = _secondaryDatabase.FindExerciseImage(exerciseName);
-            if (!string.IsNullOrWhiteSpace(secondary?.ImagePath))
-            {
-                var candidate = Path.GetFullPath(secondary.ImagePath);
                 if (File.Exists(candidate))
                 {
                     return candidate;
@@ -436,39 +420,6 @@ namespace GymRoutineGenerator.Services
             return list;
         }
 
-        private IReadOnlyList<ExerciseIndexEntry> BuildSecondaryIndex()
-        {
-            var list = new List<ExerciseIndexEntry>();
-            var dedup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var info in _secondaryDatabase.GetAllExercises())
-            {
-                var name = !string.IsNullOrWhiteSpace(info.ExerciseName)
-                    ? info.ExerciseName
-                    : !string.IsNullOrWhiteSpace(info.Name) ? info.Name : string.Empty;
-
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    continue;
-                }
-
-                var normalized = Normalize(name);
-                if (string.IsNullOrEmpty(normalized) || !dedup.Add(normalized))
-                {
-                    continue;
-                }
-
-                list.Add(new ExerciseIndexEntry(
-                    name,
-                    normalized,
-                    info.MuscleGroups ?? Array.Empty<string>(),
-                    ManualExerciseDataSource.Secondary,
-                    info.ImagePath ?? string.Empty));
-            }
-
-            return list;
-        }
-
         private static bool IsMatch(ExerciseIndexEntry entry, string rawQuery, string normalizedQuery)
         {
             if (entry.NormalizedName.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
@@ -522,7 +473,7 @@ namespace GymRoutineGenerator.Services
                     entry.MuscleGroups,
                         imagePath ?? string.Empty,
                         Array.Empty<string>(),
-                        entry.Source == ManualExerciseDataSource.Primary ? "BD Principal" : "BD Secundaria");
+                        "BD Principal");
                 }
 
                 var groups = metadata.MuscleGroups?.Length > 0
@@ -549,9 +500,7 @@ namespace GymRoutineGenerator.Services
                 }
 
                 var keywords = metadata.Keywords ?? Array.Empty<string>();
-                var sourceLabel = !string.IsNullOrWhiteSpace(metadata.Source)
-                    ? metadata.Source
-                    : entry.Source == ManualExerciseDataSource.Primary ? "BD Principal" : "BD Secundaria";
+                var sourceLabel = "BD Principal";
 
                 return new ExerciseGalleryItem(
                     resolvedId,
@@ -900,17 +849,6 @@ namespace GymRoutineGenerator.Services
             }
 
             return null;
-        }
-
-        private IEnumerable<ExerciseIndexEntry> EnumerateIndex(ManualExerciseDataSource source)
-        {
-            return source switch
-            {
-                ManualExerciseDataSource.Primary => _primaryIndex.Value,
-                ManualExerciseDataSource.Secondary => _secondaryIndex.Value,
-                ManualExerciseDataSource.Combined => _primaryIndex.Value.Concat(_secondaryIndex.Value),
-                _ => _primaryIndex.Value
-            };
         }
 
         private static void ExecuteOnStaThread(Action action)

@@ -257,7 +257,7 @@ def populate_basic_data(backup_data):
             )
         print(f"✅ Restaurados {len(backup_data['equipment_types'])} tipos de equipamiento")
 
-    # Insert backed up exercises or create basic ones
+    # Insert backed up exercises
     if backup_data['exercises']:
         for ex in backup_data['exercises']:
             try:
@@ -277,26 +277,7 @@ def populate_basic_data(backup_data):
 
         print(f"✅ Restaurados {len(backup_data['exercises'])} ejercicios")
     else:
-        # Create basic exercises
-        basic_exercises = [
-            (1, "Push-up", "Flexiones", "Ejercicio básico de empuje", "Baja el cuerpo hasta que el pecho casi toque el suelo, luego empuja hacia arriba", 1, 1, 0, 0, None, 1, datetime.now().isoformat(), None, None),
-            (2, "Pull-up", "Dominadas", "Ejercicio de tracción", "Cuelga de una barra y tira hacia arriba hasta que la barbilla pase la barra", 2, 1, 1, 0, None, 1, datetime.now().isoformat(), None, None),
-            (3, "Squat", "Sentadillas", "Ejercicio básico de piernas", "Baja como si te fueras a sentar manteniendo la espalda recta, luego sube", 5, 1, 0, 0, None, 1, datetime.now().isoformat(), None, None),
-            (4, "Plank", "Plancha", "Ejercicio de core", "Mantén el cuerpo recto apoyado en antebrazos y pies", 6, 1, 0, 0, 60, 1, datetime.now().isoformat(), None, None),
-            (5, "Dumbbell Curl", "Curl con mancuernas", "Ejercicio de bíceps", "Flexiona el codo levantando la mancuerna hacia el hombro", 4, 2, 0, 0, None, 1, datetime.now().isoformat(), None, None),
-            (6, "Deadlift", "Peso muerto", "Ejercicio compuesto", "Levanta la barra desde el suelo manteniendo la espalda recta", 2, 3, 2, 0, None, 1, datetime.now().isoformat(), None, None),
-            (7, "Lunges", "Zancadas", "Ejercicio de piernas", "Da un paso adelante y baja la rodilla trasera hacia el suelo", 5, 1, 1, 0, None, 1, datetime.now().isoformat(), None, None),
-            (8, "Shoulder Press", "Press de hombros", "Ejercicio de hombros", "Empuja las mancuernas hacia arriba desde los hombros", 3, 2, 1, 0, None, 1, datetime.now().isoformat(), None, None)
-        ]
-
-        cursor.executemany("""
-            INSERT INTO Exercises (Id, Name, SpanishName, Description, Instructions,
-                                 PrimaryMuscleGroupId, EquipmentTypeId, DifficultyLevel,
-                                 ExerciseType, DurationSeconds, IsActive, CreatedAt, UpdatedAt, ParentExerciseId)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, basic_exercises)
-
-        print(f"✅ Insertados {len(basic_exercises)} ejercicios básicos")
+        print("ℹ️ No hay ejercicios para restaurar en el backup.")
 
     conn.commit()
     conn.close()

@@ -19,9 +19,7 @@ namespace GymRoutineGenerator.Services
     /// </summary>
     public class ExerciseImageSearchService
     {
-        public ManualExerciseDataSource PreferredSource { get; set; } = ManualExerciseDataSource.Primary;
         private readonly SQLiteExerciseImageDatabase _primaryDatabase;
-        private readonly SecondaryExerciseDatabase _secondaryDatabase;
         private readonly AutomaticImageFinder _automaticFinder;
 
         private static readonly object InitializationLock = new();
@@ -40,7 +38,6 @@ namespace GymRoutineGenerator.Services
         public ExerciseImageSearchService()
         {
             _primaryDatabase = new SQLiteExerciseImageDatabase();
-            _secondaryDatabase = new SecondaryExerciseDatabase();
             _automaticFinder = new AutomaticImageFinder();
             EnsureInitialized();
         }
@@ -64,50 +61,13 @@ namespace GymRoutineGenerator.Services
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // Primaria
-            if (PreferredSource != ManualExerciseDataSource.Secondary)
+            foreach (var exercise in _primaryExercises)
             {
-                foreach (var exercise in _primaryExercises)
+                if (exercise.MuscleGroups.Any(group => AreSameMuscleGroup(group, canonical)))
                 {
-                    if (exercise.MuscleGroups.Any(group => AreSameMuscleGroup(group, canonical)))
+                    if (seen.Add(exercise.Name))
                     {
-                        if (seen.Add(exercise.Name))
-                        {
-                            results.Add(CloneExercise(exercise));
-                        }
-                    }
-                }
-            }
-
-            // Secundaria
-            if (PreferredSource != ManualExerciseDataSource.Primary)
-            {
-                foreach (var term in GetMuscleGroupSearchTerms(canonical))
-                {
-                    var secondaryExercises = _secondaryDatabase.GetExercisesByMuscleGroup(term);
-                    foreach (var info in secondaryExercises)
-                    {
-                        var name = !string.IsNullOrWhiteSpace(info.Name) ? info.Name :
-                                   !string.IsNullOrWhiteSpace(info.ExerciseName) ? info.ExerciseName :
-                                   string.Empty;
-
-                        if (string.IsNullOrWhiteSpace(name) || !seen.Add(name))
-                        {
-                            continue;
-                        }
-
-                        var metadata = FindMetadata(name);
-
-                        results.Add(new ExerciseWithImage
-                        {
-                            Name = metadata?.Name ?? name,
-                            EnglishName = metadata?.EnglishName ?? string.Empty,
-                            Description = metadata?.Description ?? info.Description ?? string.Empty,
-                            MuscleGroups = metadata?.MuscleGroups?.Length > 0 ? metadata.MuscleGroups : new[] { canonical },
-                            ImagePath = info.ImagePath ?? string.Empty,
-                            ImageData = info.ImageData,
-                            Source = info.Source ?? "BD Secundaria",
-                            Keywords = metadata?.Keywords ?? Array.Empty<string>()
-                        });
+                        results.Add(CloneExercise(exercise));
                     }
                 }
             }
@@ -177,10 +137,6 @@ namespace GymRoutineGenerator.Services
                 ResolveImageFromPrimarySources(variant, resolved);
                 if (!HasImage(resolved))
                 {
-                    ResolveImageFromSecondarySources(variant, resolved);
-                }
-                if (!HasImage(resolved))
-                {
                     ResolveImageFromFilesystem(variant, resolved);
                 }
 
@@ -194,10 +150,6 @@ namespace GymRoutineGenerator.Services
             foreach (var variant in variants)
             {
                 var info = _primaryDatabase.FindExerciseImage(variant);
-                if (info == null)
-                {
-                    info = _secondaryDatabase.FindExerciseImage(variant);
-                }
 
                 if (info != null)
                 {
@@ -207,7 +159,7 @@ namespace GymRoutineGenerator.Services
                     {
                         Name = metadata?.Name ?? info.ExerciseName ?? variant,
                         EnglishName = metadata?.EnglishName ?? info.Name ?? variant,
-                        Description = metadata?.Description ?? info.Description ?? string.Empty,
+                        Description = metadata?.Description ?? string.Empty,
                         MuscleGroups = metadata?.MuscleGroups?.Length > 0 ? metadata.MuscleGroups : InferMuscleGroups(variant, info.ImagePath),
                         ImageData = info.ImageData,
                         ImagePath = info.ImagePath ?? string.Empty,
@@ -264,26 +216,6 @@ namespace GymRoutineGenerator.Services
                     {
                         resolved.MuscleGroups = metadata.MuscleGroups;
                     }
-                }
-            }
-        }
-
-        private void ResolveImageFromSecondarySources(string variant, ExerciseWithImage resolved)
-        {
-            var info = _secondaryDatabase.FindExerciseImage(resolved.Name);
-            if (info == null && !string.Equals(resolved.Name, variant, StringComparison.OrdinalIgnoreCase))
-            {
-                info = _secondaryDatabase.FindExerciseImage(variant);
-            }
-
-            if (info != null)
-            {
-                resolved.ImagePath = !string.IsNullOrEmpty(info.ImagePath) ? info.ImagePath : resolved.ImagePath;
-                resolved.Source = info.Source ?? "BD Secundaria";
-
-                if (resolved.MuscleGroups.Length == 0)
-                {
-                    resolved.MuscleGroups = InferMuscleGroups(resolved.Name, resolved.ImagePath);
                 }
             }
         }

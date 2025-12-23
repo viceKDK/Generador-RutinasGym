@@ -29,7 +29,6 @@ namespace GymRoutineGenerator.UI
         private readonly Dictionary<string, ExerciseGalleryCard> _cardIndex = new(StringComparer.OrdinalIgnoreCase);
 
         private TextBox _searchTextBox = null!;
-        private ComboBox _dataSourceComboBox = null!;
         private Label _resultsLabel = null!;
         private Label _titleLabel = null!;
         private Button _openImageLocationButton = null!;
@@ -105,23 +104,6 @@ namespace GymRoutineGenerator.UI
             };
             _searchTextBox.TextChanged += SearchTextBox_TextChanged;
 
-            _dataSourceComboBox = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Width = 200,
-                Margin = new Padding(0, 0, 20, 0),
-                Height = 40
-            };
-            _dataSourceComboBox.Items.AddRange(new object[]
-            {
-                "BD principal",
-                "BD secundaria",
-                "Ambas"
-            });
-            _dataSourceComboBox.SelectedIndex = 0;
-            _dataSourceComboBox.SelectedIndexChanged += DataSourceComboBox_SelectedIndexChanged;
-            _toolTip.SetToolTip(_dataSourceComboBox, "Selecciona la fuente de datos para la busqueda.");
-
             _openImageLocationButton = new Button
             {
                 Text = "Abrir ubicacion de la imagen",
@@ -149,7 +131,6 @@ namespace GymRoutineGenerator.UI
             _toolTip.SetToolTip(_returnToGeneratorButton, "Cerrar la galeria y regresar al generador.");
 
             topFlow.Controls.Add(_searchTextBox);
-            topFlow.Controls.Add(_dataSourceComboBox);
             topFlow.Controls.Add(_openImageLocationButton);
             topFlow.Controls.Add(_returnToGeneratorButton);
             topPanel.Controls.Add(topFlow);
@@ -206,11 +187,6 @@ namespace GymRoutineGenerator.UI
             _searchDebounceTimer.Start();
         }
 
-        private void DataSourceComboBox_SelectedIndexChanged(object? sender, EventArgs e)
-        {
-            PerformSearch(force: true);
-        }
-
         private void SearchDebounceTimer_Tick(object? sender, EventArgs e)
         {
             _searchDebounceTimer.Stop();
@@ -234,8 +210,7 @@ namespace GymRoutineGenerator.UI
 
             try
             {
-                var source = GetSelectedDataSource();
-                var results = _libraryService.Search(query, source);
+                var results = _libraryService.Search(query);
                 _currentResults.Clear();
                 _currentResults.AddRange(results);
 
@@ -411,17 +386,6 @@ namespace GymRoutineGenerator.UI
         {
             return _selectionEntries.Any(entry =>
                 string.Equals(entry.ExerciseId, item.Id, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private ManualExerciseDataSource GetSelectedDataSource()
-        {
-            return _dataSourceComboBox.SelectedIndex switch
-            {
-                0 => ManualExerciseDataSource.Primary,
-                1 => ManualExerciseDataSource.Secondary,
-                2 => ManualExerciseDataSource.Combined,
-                _ => ManualExerciseDataSource.Primary
-            };
         }
 
         private void ToggleSelectedInSelection()

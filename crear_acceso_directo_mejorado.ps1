@@ -3,9 +3,9 @@
 # Rutas absolutas
 $escritorio = [Environment]::GetFolderPath("Desktop")
 $rutaProyecto = Split-Path -Parent $MyInvocation.MyCommand.Path
-$rutaScript = Join-Path $rutaProyecto "ejecutar_rutina_gym.vbs"
+$rutaScript = Join-Path $rutaProyecto "ejecutar_gym.vbs"
 $rutaIconoAppUI = Join-Path $rutaProyecto "gym_icon.ico"
-$rutaAccesoDirecto = Join-Path $escritorio "Rutina Gym.lnk"
+$rutaAccesoDirecto = Join-Path $escritorio "Rutina Gym Nueva.lnk"
 
 Write-Host "Verificando archivos..."
 Write-Host "Ruta del proyecto: $rutaProyecto"

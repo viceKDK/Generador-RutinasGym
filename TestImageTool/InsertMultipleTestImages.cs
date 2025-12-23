@@ -11,18 +11,12 @@ class InsertMultipleTestImages
         var dbPath = @"C:\Users\vicen\OneDrive\Escritorio\apps\por hacer\app generacion rutinas gym\gymroutine.db";
         var connectionString = $"Data Source={dbPath};Version=3;";
 
-        // Lista de ejercicios para agregar imágenes
+        // Lista de ejercicios para agregar imágenes (vacía por defecto)
         var exercises = new[]
         {
-            new { Name = "Press de Banca", SpanishName = "Press de Banca", Color = Color.Red },
-            new { Name = "Sentadillas", SpanishName = "Sentadillas", Color = Color.Blue },
-            new { Name = "Peso Muerto", SpanishName = "Peso Muerto", Color = Color.Green },
-            new { Name = "Dominadas", SpanishName = "Dominadas", Color = Color.Orange },
-            new { Name = "Press Militar", SpanishName = "Press Militar", Color = Color.Purple },
-            new { Name = "Remo con Barra", SpanishName = "Remo con Barra", Color = Color.DarkBlue },
-            new { Name = "Curl de Biceps", SpanishName = "Curl de Bíceps", Color = Color.Pink },
-            new { Name = "Extensiones de Triceps", SpanishName = "Extensiones de Tríceps", Color = Color.Brown }
-        };
+            // Lista vacía para evitar insertar ejercicios hardcoded
+            new { Name = "", SpanishName = "", Color = Color.Transparent }
+        }.Where(e => !string.IsNullOrEmpty(e.Name)).ToArray();
 
         using (var connection = new SQLiteConnection(connectionString))
         {

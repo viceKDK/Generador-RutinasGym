@@ -30,10 +30,10 @@ namespace GymRoutineGenerator.Infrastructure
             }
 
             _connectionString = $"Data Source={dbPath};Version=3;";
-            _exerciseColumns = LoadExerciseColumns();
-
-            // Asegurar que la columna VideoUrl exista
+            
+            // Asegurar que la columna VideoUrl exista antes de cargar las columnas
             EnsureVideoUrlColumnExists();
+            _exerciseColumns = LoadExerciseColumns();
         }
 
         private string? FindDatabasePath()
@@ -650,7 +650,8 @@ namespace GymRoutineGenerator.Infrastructure
                 {
                     connection.Open();
 
-                    var query = @"
+                    // Asegurar que la tabla existe primero
+                    var createTableQuery = @"
                         CREATE TABLE IF NOT EXISTS Exercises (
                             Id INTEGER PRIMARY KEY AUTOINCREMENT,
                             Name TEXT NOT NULL,
@@ -666,9 +667,33 @@ namespace GymRoutineGenerator.Infrastructure
                             VideoUrl TEXT
                         );";
 
-                    using (var command = new SQLiteCommand(query, connection))
+                    using (var command = new SQLiteCommand(createTableQuery, connection))
                     {
                         command.ExecuteNonQuery();
+                    }
+
+                    // Verificar si la columna VideoUrl existe en una tabla ya creada
+                    var columnExists = false;
+                    using (var command = new SQLiteCommand("PRAGMA table_info(Exercises);", connection))
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (string.Equals(reader["name"].ToString(), "VideoUrl", StringComparison.OrdinalIgnoreCase))
+                            {
+                                columnExists = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!columnExists)
+                    {
+                        using (var command = new SQLiteCommand("ALTER TABLE Exercises ADD COLUMN VideoUrl TEXT;", connection))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        System.Diagnostics.Debug.WriteLine("[SQLiteExerciseImageDatabase] Columna VideoUrl añadida exitosamente.");
                     }
                 }
             }

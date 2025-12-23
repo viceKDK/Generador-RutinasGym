@@ -43,8 +43,6 @@ namespace GymRoutineGenerator.UI
         private RichTextBox routineDisplayTextBox;
         private ProgressBar progressBar;
         private Label statusLabel;
-        private Button dataSourceButton;
-        private Models.ManualExerciseDataSource generationDataSource = Models.ManualExerciseDataSource.Primary;
         private WordDocumentExporter exportService;
         private readonly SQLiteExerciseImageDatabase imageDatabase = new SQLiteExerciseImageDatabase();
         private List<WorkoutDay> lastGeneratedPlan = new List<WorkoutDay>();
@@ -298,24 +296,6 @@ namespace GymRoutineGenerator.UI
             });
             goalsCheckedListBox.SetItemChecked(0, true);
 
-            // Botón fino y largo para seleccionar fuente de ejercicios
-            dataSourceButton = new Button
-            {
-                Text = "Fuente: BD principal (personalizada)",
-                Width = 360,
-                Height = 32,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(248, 249, 250)
-            };
-            dataSourceButton.FlatAppearance.BorderColor = Color.FromArgb(206, 212, 218);
-            dataSourceButton.Click += (_, __) =>
-            {
-                generationDataSource = generationDataSource == Models.ManualExerciseDataSource.Primary
-                    ? Models.ManualExerciseDataSource.Secondary
-                    : Models.ManualExerciseDataSource.Primary;
-                UpdateDataSourceButtonText();
-            };
-
             // Action Buttons with modern styling
             generateButton = new ModernButton
             {
@@ -427,7 +407,7 @@ namespace GymRoutineGenerator.UI
 
             goalsCard.Controls.AddRange(new Control[]
             {
-                goalsCheckedListBox, dataSourceButton
+                goalsCheckedListBox
             });
 
             routineCard.Controls.AddRange(new Control[]
@@ -490,10 +470,6 @@ namespace GymRoutineGenerator.UI
             // Goals card
             goalsCard.Location = new Point(leftMargin, trainingCard.Bottom + cardSpacing);
             goalsCheckedListBox.Location = new Point(24, 62);
-            if (dataSourceButton != null)
-            {
-                dataSourceButton.Location = new Point(24, goalsCheckedListBox.Bottom + 12);
-            }
 
             // Buttons with improved layout and spacing
             int buttonsTop = goalsCard.Bottom + cardSpacing + 8;
@@ -656,7 +632,6 @@ namespace GymRoutineGenerator.UI
                 progressBar.Style = ProgressBarStyle.Marquee;
 
                 var profile = BuildUserProfileFromForm();
-                exerciseSearchService.PreferredSource = generationDataSource;
 
                 // Verificar disponibilidad de Ollama
                 bool isOllamaAvailable = await ollamaService.IsOllamaAvailable();
@@ -785,7 +760,6 @@ namespace GymRoutineGenerator.UI
                 progressBar.Style = ProgressBarStyle.Marquee;
 
                 var profile = BuildUserProfileFromForm();
-                exerciseSearchService.PreferredSource = generationDataSource;
 
                 if (!await ollamaService.IsOllamaAvailable())
                 {
@@ -814,14 +788,6 @@ namespace GymRoutineGenerator.UI
             {
                 progressBar.Visible = false;
             }
-        }
-
-        private void UpdateDataSourceButtonText()
-        {
-            if (dataSourceButton == null) return;
-            dataSourceButton.Text = generationDataSource == Models.ManualExerciseDataSource.Primary
-                ? "Fuente: BD principal (personalizada)"
-                : "Fuente: BD secundaria (general)";
         }
 
         private string FormatRoutineForDisplay(UserProfile profile, List<WorkoutDay> workoutDays)
