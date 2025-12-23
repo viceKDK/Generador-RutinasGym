@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom'
-import { IconBarbell, IconFileText, IconSettings, IconEdit, IconMenu2, IconX } from '@tabler/icons-react'
+import { IconBarbell, IconFileText, IconSettings, IconEdit, IconMenu2, IconX, IconChevronRight } from '@tabler/icons-react'
 import RoutineGenerator from './components/RoutineGenerator'
 import ExerciseLibrary from './components/ExerciseLibrary'
 import ExerciseManager from './components/ExerciseManager'
@@ -25,7 +25,7 @@ function App() {
                 <IconBarbell size={32} className="text-white filter drop-shadow-lg" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold gradient-text animate-fade-in tracking-tight">
+                <h1 className="text-3xl font-bold text-text animate-fade-in tracking-tight">
                   Generador de Rutinas de Gimnasio
                 </h1>
               </div>
@@ -33,34 +33,45 @@ function App() {
           </div>
         </header>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1">
           {/* Sidebar Premium - Desplegable */}
-          <aside className={`bg-gradient-to-b from-surface to-surface-light border-r border-border-gold shadow-xl transition-all duration-300 ${sidebarOpen ? 'w-72 p-4' : 'w-0 p-0 overflow-hidden'}`}>
-            <nav className="space-y-3">
+          <aside className={`bg-gradient-to-b from-surface to-surface-light border-r border-border-gold shadow-xl transition-all duration-300 sticky top-0 self-start relative ${sidebarOpen ? 'w-64 p-4 pt-4' : 'w-0 p-0 overflow-hidden'}`}>
+            {/* Toggle Button en el borde derecho como marcador */}
+            {sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="group absolute -right-2.5 top-2 z-50 flex items-center justify-center p-2 rounded-md bg-gradient-to-br from-secondary to-secondary-dark text-white shadow-md hover:shadow-glow-violet transition-all duration-300 hover:scale-110"
+                title="Ocultar menú"
+              >
+                <IconChevronRight size={16} className="drop-shadow-lg" />
+              </button>
+            )}
+
+            <nav className="space-y-2 h-[calc(100vh-2rem)] overflow-y-auto pt-4">
               <NavLink
                 to="/generator"
-                icon={<IconBarbell size={22} />}
+                icon={<IconBarbell size={20} />}
                 label="Generar Rutina"
                 active={activeTab === 'generator'}
                 onClick={() => setActiveTab('generator')}
               />
               <NavLink
                 to="/exercises"
-                icon={<IconFileText size={22} />}
+                icon={<IconFileText size={20} />}
                 label="Biblioteca de Ejercicios"
                 active={activeTab === 'exercises'}
                 onClick={() => setActiveTab('exercises')}
               />
               <NavLink
                 to="/manager"
-                icon={<IconEdit size={22} />}
+                icon={<IconEdit size={20} />}
                 label="Gestor de Ejercicios"
                 active={activeTab === 'manager'}
                 onClick={() => setActiveTab('manager')}
               />
               <NavLink
                 to="/settings"
-                icon={<IconSettings size={22} />}
+                icon={<IconSettings size={20} />}
                 label="Configuración"
                 active={activeTab === 'settings'}
                 onClick={() => setActiveTab('settings')}
@@ -68,20 +79,22 @@ function App() {
             </nav>
           </aside>
 
-          {/* Toggle Button */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="absolute left-0 top-32 z-50 bg-gradient-to-r from-secondary to-secondary-dark text-white p-3 rounded-r-xl shadow-glow-violet hover:shadow-glow-violet transition-all duration-300 hover:scale-110"
-            title={sidebarOpen ? 'Ocultar menú' : 'Mostrar menú'}
-          >
-            {sidebarOpen ? <IconX size={20} /> : <IconMenu2 size={20} />}
-          </button>
+          {/* Toggle Button cuando sidebar está cerrada */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="fixed left-0 top-32 z-50 bg-gradient-to-r from-secondary to-secondary-dark text-white p-3 rounded-r-xl shadow-glow-violet hover:shadow-glow-violet transition-all duration-300 hover:scale-110"
+              title="Mostrar menú"
+            >
+              <IconMenu2 size={20} />
+            </button>
+          )}
 
           {/* Main content Premium */}
-          <main className="flex-1 overflow-auto bg-background relative">
+          <main className={`flex-1 bg-background relative transition-all duration-300 ${!sidebarOpen ? 'pl-16' : ''}`}>
             {/* Efecto de gradiente de fondo */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none"></div>
-            
+
             <div className="p-8 relative z-10">
               <Routes>
                 <Route path="/" element={<Navigate to="/generator" replace />} />
@@ -114,7 +127,7 @@ function NavLink({ to, icon, label, active, onClick }: NavLinkProps) {
       to={to}
       onClick={onClick}
       className={`
-        group flex items-center gap-3 px-5 py-4 rounded-xl transition-all duration-300 relative overflow-hidden
+        group flex items-center gap-2.5 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden w-[95%]
         ${
           active
             ? 'bg-gradient-to-r from-secondary via-secondary-dark to-secondary text-white shadow-glow-violet border border-secondary-light'
@@ -128,13 +141,13 @@ function NavLink({ to, icon, label, active, onClick }: NavLinkProps) {
       <div className={`relative z-10 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
         {icon}
       </div>
-      <span className={`relative z-10 font-semibold tracking-wide ${active ? 'font-bold' : ''}`}>
+      <span className="relative z-10 text-sm font-semibold tracking-wide">
         {label}
       </span>
       
       {/* Indicador activo */}
       {active && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full shadow-lg"></div>
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full shadow-lg"></div>
       )}
     </Link>
   )

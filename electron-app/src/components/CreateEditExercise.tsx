@@ -26,14 +26,15 @@ export default function CreateEditExercise() {
   const [saving, setSaving] = useState(false)
 
   const handleImageChange = (files: FileList | null) => {
-    if (!files) return
+    if (!files || files.length === 0) return
 
-    const fileArray = Array.from(files)
-    setImages(fileArray)
+    // Solo tomar el primer archivo (solo 1 imagen permitida)
+    const file = files[0]
+    setImages([file])
 
-    // Generate previews
-    const previews = fileArray.map(file => URL.createObjectURL(file))
-    setImagePreviews(previews)
+    // Generate preview
+    const preview = URL.createObjectURL(file)
+    setImagePreviews([preview])
   }
 
   // Cleanup previews on unmount
@@ -71,34 +72,44 @@ export default function CreateEditExercise() {
         exerciseId = await window.electronAPI.db.createExercise(exerciseData)
       }
 
-      // Upload images
+      // Upload image (solo 1 imagen, reemplaza la existente)
       if (images.length > 0) {
-        for (let i = 0; i < images.length; i++) {
-          const file = images[i]
-          const reader = new FileReader()
-
-          await new Promise((resolve, reject) => {
-            reader.onload = async () => {
-              try {
-                const base64 = reader.result as string
-                const imagePath = await window.electronAPI.file.uploadImage(base64, exerciseId)
-
-                if (imagePath) {
-                  await window.electronAPI.db.saveExerciseImage(
-                    exerciseId,
-                    imagePath,
-                    i === 0 // First image is primary
-                  )
-                }
-                resolve(null)
-              } catch (err) {
-                reject(err)
-              }
+        // Si estamos editando, primero eliminar imágenes existentes
+        if (exercise?.id) {
+          try {
+            const existingImages = await window.electronAPI.db.getExerciseImages(exerciseId)
+            for (const img of existingImages) {
+              await window.electronAPI.db.deleteExerciseImage(img.id)
             }
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          })
+          } catch (err) {
+            console.error('Error deleting existing images:', err)
+          }
         }
+
+        const file = images[0]
+        const reader = new FileReader()
+
+        await new Promise((resolve, reject) => {
+          reader.onload = async () => {
+            try {
+              const base64 = reader.result as string
+              const imagePath = await window.electronAPI.file.uploadImage(base64, exerciseId)
+
+              if (imagePath) {
+                await window.electronAPI.db.saveExerciseImage(
+                  exerciseId,
+                  imagePath,
+                  true // Siempre es la imagen principal
+                )
+              }
+              resolve(null)
+            } catch (err) {
+              reject(err)
+            }
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
       }
 
       // Upload videos
@@ -160,33 +171,20 @@ export default function CreateEditExercise() {
         <div className="card">
           <h2 className="text-xl font-bold text-text mb-6">Información Básica</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="label text-base">Nombre (Inglés)</label>
-              <input
-                type="text"
-                className="input text-base"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                placeholder="Bench Press"
-              />
-            </div>
-            <div>
-              <label className="label text-base">Nombre (Español)</label>
-              <input
-                type="text"
-                className="input text-base"
-                value={formData.spanish_name}
-                onChange={(e) => setFormData({ ...formData, spanish_name: e.target.value })}
-                required
-                placeholder="Press de Banca"
-              />
-            </div>
+          <div>
+            <label className="label text-base">Nombre del Ejercicio</label>
+            <input
+              type="text"
+              className="input text-base"
+              value={formData.spanish_name}
+              onChange={(e) => setFormData({ ...formData, spanish_name: e.target.value, name: e.target.value })}
+              required
+              placeholder="Press de Banca"
+            />
           </div>
 
           <div className="mt-6">
-            <label className="label text-base">Descripción</label>
+            <label className="label text-base">Descripción (opcional)</label>
             <textarea
               className="input text-base"
               rows={3}
@@ -197,7 +195,7 @@ export default function CreateEditExercise() {
           </div>
 
           <div className="mt-6">
-            <label className="label text-base">Instrucciones</label>
+            <label className="label text-base">Instrucciones (opcional)</label>
             <textarea
               className="input text-base"
               rows={6}
@@ -312,13 +310,12 @@ export default function CreateEditExercise() {
             <div>
               <label className="label text-base flex items-center gap-2">
                 <IconPhoto size={20} />
-                Imágenes del Ejercicio
+                Imagen del Ejercicio
               </label>
               <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-all cursor-pointer bg-surface/50">
                 <input
                   type="file"
                   accept="image/*"
-                  multiple
                   className="hidden"
                   id="image-upload"
                   onChange={(e) => handleImageChange(e.target.files)}
@@ -326,43 +323,34 @@ export default function CreateEditExercise() {
                 <label htmlFor="image-upload" className="cursor-pointer">
                   <IconUpload size={48} className="mx-auto mb-3 text-text-muted" />
                   <p className="text-base text-text mb-1 font-semibold">
-                    {images.length > 0 ? `${images.length} imagen(es) seleccionada(s)` : 'Click para subir imágenes'}
+                    {images.length > 0 ? 'Imagen seleccionada' : 'Click para subir imagen'}
                   </p>
                   <p className="text-sm text-text-muted">
-                    La primera imagen será la principal
+                    Solo 1 imagen por ejercicio
                   </p>
                 </label>
               </div>
 
-              {/* Image Previews */}
+              {/* Image Preview */}
               {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 mt-4">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-28 object-cover rounded-lg border-2 border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newImages = images.filter((_, i) => i !== index)
-                          const newPreviews = imagePreviews.filter((_, i) => i !== index)
-                          setImages(newImages)
-                          setImagePreviews(newPreviews)
-                        }}
-                        className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                      >
-                        <IconX size={16} />
-                      </button>
-                      {index === 0 && (
-                        <span className="absolute bottom-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-md font-semibold">
-                          Principal
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                <div className="mt-4">
+                  <div className="relative group">
+                    <img
+                      src={imagePreviews[0]}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg border-2 border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImages([])
+                        setImagePreviews([])
+                      }}
+                      className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <IconX size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

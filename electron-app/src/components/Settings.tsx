@@ -25,9 +25,8 @@ export default function Settings() {
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold gradient-text mb-2">Configuración</h1>
-        <p className="text-text-secondary text-lg">Personaliza tu experiencia premium</p>
+      <div className="mb-8 pb-2 text-center">
+        <h1 className="text-5xl font-bold text-text mb-3 pb-1 leading-tight">Configuración</h1>
       </div>
 
       <div className="space-y-8">
@@ -73,19 +72,20 @@ export default function Settings() {
               </select>
             </div>
 
-            <div className="flex items-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
               <button
-                className="btn-primary"
+                className="group relative px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-semibold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
                 onClick={testOllamaConnection}
                 disabled={testingOllama}
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 {testingOllama ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  <span className="flex items-center gap-2 relative z-10">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Probando...
                   </span>
                 ) : (
-                  'Probar Conexión'
+                  <span className="relative z-10">Probar Conexión</span>
                 )}
               </button>
 
@@ -130,10 +130,9 @@ export default function Settings() {
               </div>
             </div>
 
-            <button className="btn-outline hover-lift w-full sm:w-auto">
-              <span className="flex items-center justify-center gap-2">
-                📦 Exportar Base de Datos
-              </span>
+            <button className="group relative px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-semibold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 overflow-hidden w-full sm:w-auto">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              <span className="relative z-10">Exportar Base de Datos</span>
             </button>
           </div>
         </div>

@@ -35,10 +35,10 @@ export default function ExerciseManager() {
         </div>
         <button
           onClick={() => navigate('/manager/create')}
-          className="btn-primary flex items-center gap-3 rounded-2xl px-8 py-4 text-white shadow-glow-gold hover:shadow-glow-gold transition-all duration-300 hover:scale-105"
+          className="group relative px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-semibold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 overflow-hidden"
         >
-          <IconPlus size={24} className="font-bold" />
-          <span className="font-bold text-lg">Nuevo Ejercicio</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          <span className="relative z-10">Nuevo Ejercicio</span>
         </button>
       </div>
 

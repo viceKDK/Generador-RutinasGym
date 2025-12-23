@@ -1,8 +1,15 @@
-import { useState } from 'react'
-import { IconUserCircle, IconTarget, IconCalendar, IconSparkles } from '@tabler/icons-react'
+import { useState, useEffect } from 'react'
+import { IconUserCircle, IconTarget, IconCalendar, IconSparkles, IconPhoto } from '@tabler/icons-react'
 import type { UserProfile, WorkoutPlan, FitnessLevel } from '../models/types'
 import { useRoutineGenerator } from '../hooks/useRoutineGenerator'
 import { useExport } from '../hooks/useExport'
+
+interface ExerciseImage {
+  id: number
+  exercise_id: number
+  image_path: string
+  is_primary: boolean
+}
 
 export default function RoutineGenerator() {
   const [step, setStep] = useState(1)
@@ -127,6 +134,23 @@ interface ProfileStepProps {
 }
 
 function ProfileStep({ profile, onChange, onNext }: ProfileStepProps) {
+  const [error, setError] = useState('')
+
+  const handleNext = () => {
+    const missing = []
+    if (!profile.name) missing.push('Nombre')
+    if (!profile.age) missing.push('Edad')
+    if (!profile.gender) missing.push('Género')
+
+    if (missing.length > 0) {
+      setError(`Falta completar: ${missing.join(', ')}`)
+      return
+    }
+
+    setError('')
+    onNext()
+  }
+
   return (
     <div className="card space-y-6">
       <div className="flex items-center gap-4 mb-6">
@@ -135,7 +159,6 @@ function ProfileStep({ profile, onChange, onNext }: ProfileStepProps) {
         </div>
         <div>
           <h2 className="text-2xl font-bold">Información Personal</h2>
-          <p className="text-text-secondary text-sm">Cuéntanos sobre ti</p>
         </div>
       </div>
 
@@ -169,10 +192,9 @@ function ProfileStep({ profile, onChange, onNext }: ProfileStepProps) {
             value={profile.gender || ''}
             onChange={(e) => onChange({ ...profile, gender: e.target.value as any })}
           >
-            <option value="">Seleccionar</option>
+            <option value="" disabled>Seleccionar género</option>
             <option value="Masculino">Masculino</option>
             <option value="Femenino">Femenino</option>
-            <option value="Otro">Otro</option>
           </select>
         </div>
       </div>
@@ -206,12 +228,18 @@ function ProfileStep({ profile, onChange, onNext }: ProfileStepProps) {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-xl">
+          {error}
+        </div>
+      )}
+
       <button
-        className="btn-primary w-full text-white font-bold"
-        onClick={onNext}
-        disabled={!profile.name}
+        className="group relative w-full px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 overflow-hidden"
+        onClick={handleNext}
       >
-        Siguiente
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+        <span className="relative z-10 text-white font-bold">Siguiente</span>
       </button>
     </div>
   )
@@ -274,24 +302,29 @@ function GoalsStep({ profile, onChange, onBack, onGenerate, loading }: GoalsStep
       </div>
 
       <div className="flex gap-4">
-        <button className="btn-outline flex-1 text-white font-semibold" onClick={onBack}>
-          Atrás
+        <button
+          className="group relative flex-1 px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-semibold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 overflow-hidden"
+          onClick={onBack}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          <span className="relative z-10">Atrás</span>
         </button>
         <button
-          className="btn-primary flex-1 flex items-center justify-center gap-2 text-white font-bold"
+          className="group relative flex-1 px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-bold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
           onClick={onGenerate}
           disabled={profile.goals.length === 0 || loading}
         >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
           {loading ? (
-            <>
-              <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               <span>Generando...</span>
-            </>
+            </span>
           ) : (
-            <>
+            <span className="relative z-10 flex items-center justify-center gap-2">
               <IconSparkles size={20} />
               <span>Generar Rutina</span>
-            </>
+            </span>
           )}
         </button>
       </div>
@@ -306,6 +339,76 @@ interface ResultStepProps {
   onNewRoutine: () => void
 }
 
+function ExerciseCardWithImage({ exercise, index }: { exercise: any; index: number }) {
+  const [imagePath, setImagePath] = useState<string | null>(null)
+  const [imageLoading, setImageLoading] = useState(true)
+
+  useEffect(() => {
+    const loadImage = async () => {
+      if (!exercise.exercise?.id) return
+
+      try {
+        setImageLoading(true)
+        const images = await window.electronAPI.db.getExerciseImages(exercise.exercise.id)
+        const primaryImage = images.find((img: ExerciseImage) => img.is_primary) || images[0]
+
+        if (primaryImage) {
+          const absolutePath = await window.electronAPI.file.getPath(primaryImage.image_path)
+          setImagePath(absolutePath)
+        }
+      } catch (error) {
+        console.error('Error loading image:', error)
+      } finally {
+        setImageLoading(false)
+      }
+    }
+
+    loadImage()
+  }, [exercise.exercise?.id])
+
+  return (
+    <div className="bg-surface p-4 rounded-lg border border-border-gold hover:border-primary transition-all">
+      <div className="flex gap-4">
+        {/* Imagen del ejercicio */}
+        <div className="w-24 h-24 flex-shrink-0 bg-surface-light rounded-lg overflow-hidden">
+          {imageLoading ? (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+              <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+            </div>
+          ) : imagePath ? (
+            <img
+              src={`file://${imagePath}`}
+              alt={exercise.exercise?.spanish_name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+              <IconPhoto size={32} className="text-text-muted/30" />
+            </div>
+          )}
+        </div>
+
+        {/* Información del ejercicio */}
+        <div className="flex-1 flex items-start justify-between">
+          <div>
+            <h4 className="font-bold text-lg">
+              {index + 1}. {exercise.exercise?.spanish_name || 'Ejercicio'}
+            </h4>
+            <p className="text-sm text-text-muted mt-1">
+              {exercise.exercise?.primary_muscle_group}
+            </p>
+          </div>
+          <div className="text-right text-sm bg-surface-light px-3 py-2 rounded-lg">
+            <div className="font-semibold text-primary">Series: {exercise.sets}</div>
+            <div className="font-semibold text-primary">Reps: {exercise.reps}</div>
+            <div className="text-text-muted">Descanso: {exercise.restSeconds}s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ResultStep({ plan, onExportWord, loading, onNewRoutine }: ResultStepProps) {
   return (
     <div className="space-y-6">
@@ -318,29 +421,13 @@ function ResultStep({ plan, onExportWord, loading, onNewRoutine }: ResultStepPro
         {/* Mostrar rutinas por día */}
         <div className="space-y-6">
           {plan.routines.map((routine, idx) => (
-            <div key={idx} className="bg-surface-light p-6 rounded-lg">
-              <h3 className="text-xl font-bold mb-2">{routine.dayName}</h3>
+            <div key={idx} className="bg-surface-light p-6 rounded-xl border border-border-gold">
+              <h3 className="text-xl font-bold mb-2 gradient-text">{routine.dayName}</h3>
               <p className="text-text-muted mb-4">Enfoque: {routine.focus}</p>
 
               <div className="space-y-3">
                 {routine.exercises.map((exercise, exIdx) => (
-                  <div key={exIdx} className="bg-surface p-4 rounded-lg border border-border">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-bold">
-                          {exIdx + 1}. {exercise.exercise?.spanish_name || 'Ejercicio'}
-                        </h4>
-                        <p className="text-sm text-text-muted mt-1">
-                          {exercise.exercise?.primary_muscle_group}
-                        </p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <div>Series: {exercise.sets}</div>
-                        <div>Reps: {exercise.reps}</div>
-                        <div>Descanso: {exercise.restSeconds}s</div>
-                      </div>
-                    </div>
-                  </div>
+                  <ExerciseCardWithImage key={exIdx} exercise={exercise} index={exIdx} />
                 ))}
               </div>
             </div>
@@ -349,11 +436,20 @@ function ResultStep({ plan, onExportWord, loading, onNewRoutine }: ResultStepPro
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <button className="btn-outline text-white font-semibold" onClick={onNewRoutine}>
-          Nueva Rutina
+        <button
+          className="group relative px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-semibold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 overflow-hidden"
+          onClick={onNewRoutine}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          <span className="relative z-10">Nueva Rutina</span>
         </button>
-        <button className="btn-primary text-white font-bold" onClick={onExportWord} disabled={loading}>
-          {loading ? 'Exportando...' : 'Exportar a Word'}
+        <button
+          className="group relative px-6 py-3 bg-gradient-to-r from-secondary via-secondary-dark to-secondary-light text-white font-bold rounded-xl shadow-lg hover:shadow-glow-violet transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
+          onClick={onExportWord}
+          disabled={loading}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          <span className="relative z-10">{loading ? 'Exportando...' : 'Exportar a Word'}</span>
         </button>
       </div>
     </div>
