@@ -5,7 +5,6 @@ Una aplicación de escritorio en C# para generar rutinas de entrenamiento person
 ![Versión](https://img.shields.io/badge/versión-1.2-green)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-blue)
-![Estado](https://img.shields.io/badge/estado-producción-brightgreen)
 
 ---
 
@@ -279,16 +278,6 @@ Este proyecto está bajo la Licencia MIT - mira el archivo [LICENSE](LICENSE) pa
 
 ---
 
-## 📞 Soporte
-
-Si encuentras algún problema o tienes sugerencias:
-
-1. **Issues**: [Abrir un issue](https://github.com/viceKDK/Generador-RutinasGym/issues)
-2. **Documentación**: Ver carpeta `docs/` para guías detalladas
-3. **Email**: [Contactar al desarrollador]
-
----
-
 ## 🏆 Características Destacadas
 
 ### 🆕 Versión 1.2 (Última)
@@ -381,9 +370,3 @@ Si encuentras algún problema o tienes sugerencias:
 ---
 
 **⭐ Si te gusta el proyecto, regala una estrella en GitHub!**
-
-**🎉 ¡APLICACIÓN COMPLETAMENTE FUNCIONAL Y LISTA PARA USAR!**
-
-Última actualización: Diciembre 2025  
-Versión: 1.2  
-Estado: ✅ Producción
