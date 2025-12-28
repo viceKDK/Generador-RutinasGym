@@ -61,8 +61,19 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
   </ItemGroup>
 
 
+
+  <!-- Target para actualizar acceso directo después del build -->
+  <Target Name="UpdateDesktopShortcut" AfterTargets="Build">
+    <PropertyGroup>
+      <ExeFullPath>$([System.IO.Path]::GetFullPath('$(OutputPath)GeneradorRutinasGimnasio.exe'))</ExeFullPath>
+      <IconFullPath>$([System.IO.Path]::GetFullPath('$(ProjectDir)..\..\gym_icon.ico'))</IconFullPath>
+      <ScriptPath>$([System.IO.Path]::GetFullPath('$(ProjectDir)..\..\scripts\update-shortcut.ps1'))</ScriptPath>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(ScriptPath)&quot; -ExePath &quot;$(ExeFullPath)&quot; -IconPath &quot;$(IconFullPath)&quot;" />
+  </Target>
 
 </Project>

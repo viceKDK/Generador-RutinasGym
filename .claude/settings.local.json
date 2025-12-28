@@ -4,7 +4,10 @@
       "Bash(echo:*)",
       "Bash(done)",
       "Bash(dotnet clean:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(powershell -Command \"$ws = New-Object -ComObject WScript.Shell; $shortcut = $ws.CreateShortcut\\([Environment]::GetFolderPath\\(''Desktop''\\) + ''\\\\Rutina Gym.lnk''\\); Write-Host ''Target:'' $shortcut.TargetPath; Write-Host ''Working Dir:'' $shortcut.WorkingDirectory\")",
+      "Bash(powershell:*)",
+      "Bash(dotnet add package:*)"
     ],
     "deny": [],
     "ask": []

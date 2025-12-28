@@ -564,12 +564,39 @@ namespace GymRoutineGenerator.UI
         {
             try
             {
-                Image? image = null;
-                if (exercise.ImageData != null && exercise.ImageData.Length > 0) { using var ms = new MemoryStream(exercise.ImageData); image = Image.FromStream(ms); }
-                else if (!string.IsNullOrWhiteSpace(exercise.ImagePath) && File.Exists(exercise.ImagePath)) { image = Image.FromFile(exercise.ImagePath); }
-                previewPictureBox.Image = image ?? _placeholderImage;
+                // Liberar imagen anterior si no es el placeholder
+                var oldImage = previewPictureBox.Image;
+                if (oldImage != null && oldImage != _placeholderImage)
+                {
+                    previewPictureBox.Image = _placeholderImage;
+                    oldImage.Dispose();
+                }
+
+                // Intentar cargar la imagen
+                if (exercise.ImageData != null && exercise.ImageData.Length > 0)
+                {
+                    // Mantener el MemoryStream vivo - NO usar using aquí
+                    var ms = new MemoryStream(exercise.ImageData);
+                    var img = Image.FromStream(ms);
+                    previewPictureBox.Image = img;
+                }
+                else if (!string.IsNullOrWhiteSpace(exercise.ImagePath) && File.Exists(exercise.ImagePath))
+                {
+                    var bytes = File.ReadAllBytes(exercise.ImagePath);
+                    var ms = new MemoryStream(bytes);
+                    var img = Image.FromStream(ms);
+                    previewPictureBox.Image = img;
+                }
+                else
+                {
+                    previewPictureBox.Image = _placeholderImage;
+                }
             }
-            catch (Exception ex) { Debug.WriteLine($"[HybridManager] Error loading preview: {ex.Message}"); previewPictureBox.Image = _placeholderImage; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[HybridManager] Error loading preview: {ex.Message}");
+                try { previewPictureBox.Image = _placeholderImage; } catch { }
+            }
         }
 
         private void LoadVideoInBrowser(string? videoUrl)
@@ -831,9 +858,11 @@ namespace GymRoutineGenerator.UI
             if (_currentExercise == null) return;
             using var dialog = new OpenFileDialog { Title = "Seleccionar imagen del ejercicio", Filter = "Imagenes|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp|Todos los archivos|*.*", FilterIndex = 1 };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+            if (!SafeLoadImageToPreview(dialog.FileName)) return;
+
             _pendingImagePath = dialog.FileName;
             _imageChanged = true;
-            previewPictureBox.Image = Image.FromFile(dialog.FileName);
             EnableSaveButtons();
             UpdateStatus("Imagen seleccionada (haz clic en Guardar para confirmar)");
         }
@@ -911,12 +940,11 @@ namespace GymRoutineGenerator.UI
             var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
             if (files == null || files.Length == 0) return;
             var imagePath = files[0];
-            var ext = Path.GetExtension(imagePath).ToLowerInvariant();
-            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".bmp" && ext != ".gif" && ext != ".webp") { MessageBox.Show("Solo se admiten archivos de imagen (JPG, PNG, BMP, GIF, WEBP).", "Formato no valido", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-            
+
+            if (!SafeLoadImageToPreview(imagePath)) return;
+
             _pendingImagePath = imagePath;
             _imageChanged = true;
-            previewPictureBox.Image = Image.FromFile(imagePath);
             EnableSaveButtons();
             UpdateStatus("Imagen seleccionada (arrastrar y soltar). Haz clic en Guardar.");
         }
@@ -928,6 +956,102 @@ namespace GymRoutineGenerator.UI
         private void UpdateStatus(string message) { statusLabel.Text = message; }
 
         private string? ExportImageToTemp(byte[] imageData, string exerciseName) { try { var tempPath = Path.Combine(Path.GetTempPath(), $"{exerciseName}_{Guid.NewGuid()}.jpg"); File.WriteAllBytes(tempPath, imageData); return tempPath; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error exporting image to temp: {ex.Message}"); return null; } }
+
+        #endregion
+
+        #region Image Loading Helpers
+
+        /// <summary>
+        /// Carga una imagen de forma segura, soportando WebP y otros formatos.
+        /// </summary>
+        private bool SafeLoadImageToPreview(string imagePath)
+        {
+            string errorDetail = "";
+            try
+            {
+                // Liberar imagen anterior
+                var oldImage = previewPictureBox.Image;
+                if (oldImage != null && oldImage != _placeholderImage)
+                {
+                    previewPictureBox.Image = _placeholderImage;
+                    oldImage.Dispose();
+                }
+
+                // Intentar cargar la imagen
+                var (image, error) = LoadImageWithWebPSupport(imagePath);
+                errorDetail = error;
+
+                if (image == null)
+                {
+                    MessageBox.Show($"No se pudo cargar la imagen.\n\n{errorDetail}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    previewPictureBox.Image = _placeholderImage;
+                    return false;
+                }
+
+                previewPictureBox.Image = image;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"No se pudo cargar la imagen:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                previewPictureBox.Image = _placeholderImage;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Carga imagen con soporte para WebP usando ImageSharp.
+        /// </summary>
+        private (Image? image, string error) LoadImageWithWebPSupport(string imagePath)
+        {
+            var bytes = File.ReadAllBytes(imagePath);
+            var ext = Path.GetExtension(imagePath).ToLowerInvariant();
+            string lastError = "";
+
+            // Primero intentar con System.Drawing estándar (más rápido para JPG/PNG)
+            if (ext != ".webp")
+            {
+                try
+                {
+                    var ms = new MemoryStream(bytes);
+                    var img = Image.FromStream(ms);
+                    return (img, "");
+                }
+                catch (Exception ex)
+                {
+                    lastError = $"System.Drawing: {ex.Message}";
+                }
+            }
+
+            // Usar ImageSharp para WebP y como fallback
+            try
+            {
+                var img = LoadImageUsingImageSharp(bytes);
+                if (img != null) return (img, "");
+                lastError += "\nImageSharp: No pudo decodificar";
+            }
+            catch (Exception ex)
+            {
+                lastError += $"\nImageSharp: {ex.Message}";
+            }
+
+            return (null, $"Formato: {ext}\nTamaño: {bytes.Length} bytes\n\nErrores:\n{lastError}");
+        }
+
+        /// <summary>
+        /// Carga imagen usando ImageSharp (soporta WebP, PNG, JPG, BMP, GIF, etc).
+        /// </summary>
+        private Image? LoadImageUsingImageSharp(byte[] imageBytes)
+        {
+            using var inputStream = new MemoryStream(imageBytes);
+            using var image = SixLabors.ImageSharp.Image.Load(inputStream);
+
+            // Convertir a PNG en memoria para System.Drawing
+            using var outputStream = new MemoryStream();
+            image.Save(outputStream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+
+            return Image.FromStream(new MemoryStream(outputStream.ToArray()));
+        }
 
         #endregion
     }
