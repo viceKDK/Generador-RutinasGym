@@ -842,9 +842,22 @@ namespace GymRoutineGenerator.UI
         {
             if (_currentExercise == null) return;
             string? path = _currentExercise.VideoUrl;
+
+            // Si no hay video o es una URL (no archivo local), abrir diálogo para seleccionar video
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                Process.Start("explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+                using var dialog = new OpenFileDialog
+                {
+                    Title = "Seleccionar video del ejercicio",
+                    Filter = "Videos|*.mp4;*.avi;*.mov;*.wmv;*.mkv;*.webm|Todos los archivos|*.*",
+                    FilterIndex = 1
+                };
+                if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+                editVideoUrlTextBox.Text = dialog.FileName;
+                LoadVideoInBrowser(dialog.FileName);
+                EnableSaveButtons();
+                UpdateStatus("Video seleccionado (haz clic en Guardar para confirmar)");
                 return;
             }
             Process.Start("explorer.exe", $"/select,\"{path}\"");
@@ -854,9 +867,28 @@ namespace GymRoutineGenerator.UI
         {
             if (_currentExercise == null) return;
             var path = _currentExercise.ImagePath;
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) { if (_currentExercise.ImageData != null && _currentExercise.ImageData.Length > 0) { _exportedTempImage = ExportImageToTemp(_currentExercise.ImageData, _currentExercise.ExerciseName); path = _exportedTempImage; } } 
-            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) Process.Start("explorer.exe", $"/select,\"{path}\"");
-            else Process.Start("explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+            bool hasImage = false;
+
+            // Verificar si tiene imagen en path o en ImageData
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                hasImage = true;
+            }
+            else if (_currentExercise.ImageData != null && _currentExercise.ImageData.Length > 0)
+            {
+                _exportedTempImage = ExportImageToTemp(_currentExercise.ImageData, _currentExercise.ExerciseName);
+                path = _exportedTempImage;
+                hasImage = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+            }
+
+            // Si no hay imagen, abrir diálogo para seleccionar una
+            if (!hasImage)
+            {
+                ImportImageFromDisk();
+                return;
+            }
+
+            Process.Start("explorer.exe", $"/select,\"{path}\"");
         }
 
         private void OpenVideoButton_Click()

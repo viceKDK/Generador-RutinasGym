@@ -3,7 +3,8 @@
     "allow": [
       "Bash(echo:*)",
       "Bash(done)",
-      "Bash(dotnet clean:*)"
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet build:*)"
     ],
     "deny": [],
     "ask": []
