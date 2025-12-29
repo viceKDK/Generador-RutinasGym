@@ -27,6 +27,7 @@ public class Exercise
     public string ImagePath { get; set; } = string.Empty;
     public byte[]? ImageData { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
+    public string VideoUrl { get; set; } = string.Empty;
 
     // Additional properties
     public List<string> Modifications { get; set; } = new();

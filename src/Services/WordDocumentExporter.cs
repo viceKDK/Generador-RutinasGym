@@ -277,9 +277,13 @@ namespace GymRoutineGenerator.Services
         {
             try
             {
-                // For MVP: reuse CreateWordCompatibleHTML and write .doc HTML file
-                var clientName = string.Empty;
-                var html = CreateWordCompatibleHTML(routineContent ?? string.Empty, clientName);
+                // Retrieve client name from the file path or generate a default
+                var fileName = Path.GetFileNameWithoutExtension(filePath);
+                var clientName = fileName.Replace("Rutina_", "").Split('_')[0];
+
+                // Create rich HTML content from the structured plan
+                var html = CreateRichWordHtml(plan, clientName);
+                
                 var wordFilePath = Path.ChangeExtension(filePath, ".doc");
                 await File.WriteAllTextAsync(wordFilePath, html, Encoding.UTF8);
 
@@ -293,6 +297,140 @@ namespace GymRoutineGenerator.Services
             {
                 return false;
             }
+        }
+
+        private string CreateRichWordHtml(List<GymRoutineGenerator.Domain.WorkoutDay> plan, string clientName)
+        {
+            var html = new StringBuilder();
+
+            // Header standard
+            html.AppendLine("<html xmlns:o='urn:schemas-microsoft-com:office:office'");
+            html.AppendLine("xmlns:w='urn:schemas-microsoft-com:office:word'");
+            html.AppendLine("xmlns='http://www.w3.org/TR/REC-html40'>");
+            html.AppendLine("<head>");
+            html.AppendLine("<meta charset='UTF-8'>");
+            html.AppendLine($"<title>Rutina de Gimnasio - {clientName}</title>");
+            
+            // Styles
+            html.AppendLine("<style>");
+            html.AppendLine(@"
+                body { font-family: 'Calibri', sans-serif; font-size: 11pt; }
+                .main-title { font-size: 24pt; color: #2E74B5; text-align: center; font-weight: bold; margin-bottom: 20px; }
+                .day-title { font-size: 16pt; color: #1F4E79; border-bottom: 2px solid #1F4E79; margin-top: 30px; margin-bottom: 10px; padding-bottom: 5px; }
+                .exercise-container { margin-bottom: 20px; page-break-inside: avoid; border: 1px solid #ddd; padding: 10px; }
+                .exercise-header { background-color: #f2f2f2; padding: 5px; font-weight: bold; font-size: 13pt; display: flex; justify-content: space-between; align-items: center; }
+                .exercise-details { margin-top: 5px; }
+                .exercise-img { max-width: 250px; height: auto; display: block; margin: 10px auto; border: 1px solid #ccc; }
+                .sets-reps { font-weight: bold; color: #C00000; }
+                .video-link { color: #0000FF; text-decoration: underline; margin-left: 10px; font-size: 10pt; }
+                .summary-section { margin-top: 50px; border-top: 3px double #333; padding-top: 20px; }
+                .summary-title { font-size: 18pt; text-align: center; text-decoration: underline; margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; }
+                td { vertical-align: top; }
+            ");
+            html.AppendLine("</style>");
+            html.AppendLine("</head>");
+            html.AppendLine("<body>");
+
+            // Main Title
+            html.AppendLine($"<div class='main-title'>RUTINA DE ENTRENAMIENTO - {clientName.ToUpper()}</div>");
+
+            // --- SECTION 1: DETAILED ROUTINE WITH IMAGES & VIDEOS ---
+            if (plan != null)
+            {
+                foreach (var day in plan)
+                {
+                    html.AppendLine($"<div class='day-title'>{day.Name.ToUpper()} - {string.Join(", ", day.MuscleGroups)}</div>");
+
+                    foreach (var exercise in day.Exercises)
+                    {
+                        html.AppendLine("<div class='exercise-container'>");
+                        
+                        // Header row with Name and Video Link
+                        html.AppendLine("<div class='exercise-header'>");
+                        html.Append($"<span>{exercise.Name}</span>");
+                        
+                        if (!string.IsNullOrWhiteSpace(exercise.VideoUrl))
+                        {
+                            html.Append($"<a href='{exercise.VideoUrl}' class='video-link' target='_blank'>[VER VIDEO]</a>");
+                        }
+                        html.AppendLine("</div>");
+
+                        // Content table: Image on right (or bottom), Details on left
+                        html.AppendLine("<table><tr>");
+                        
+                        // Details Column
+                        html.AppendLine("<td style='width:60%; padding-right:15px;'>");
+                        if (!string.IsNullOrWhiteSpace(exercise.SetsAndReps))
+                        {
+                            html.AppendLine($"<p><span class='sets-reps'>Series y Repeticiones:</span> {exercise.SetsAndReps}</p>");
+                        }
+                        
+                        if (!string.IsNullOrWhiteSpace(exercise.Instructions))
+                        {
+                            html.AppendLine($"<p><b>Instrucciones:</b> {exercise.Instructions}</p>");
+                        }
+                        else if (!string.IsNullOrWhiteSpace(exercise.Description))
+                        {
+                             html.AppendLine($"<p><b>Descripción:</b> {exercise.Description}</p>");
+                        }
+                        html.AppendLine("</td>");
+
+                        // Image Column
+                        html.AppendLine("<td style='width:40%; text-align:center;'>");
+                        if (exercise.ImageData != null && exercise.ImageData.Length > 0)
+                        {
+                            var base64 = Convert.ToBase64String(exercise.ImageData);
+                            html.AppendLine($"<img src='data:image/jpeg;base64,{base64}' class='exercise-img' alt='{exercise.Name}' />");
+                        }
+                        else if (!string.IsNullOrWhiteSpace(exercise.ImagePath) && File.Exists(exercise.ImagePath))
+                        {
+                            // Try to embed local file if possible, otherwise just skip or link
+                            try
+                            {
+                                var bytes = File.ReadAllBytes(exercise.ImagePath);
+                                var base64 = Convert.ToBase64String(bytes);
+                                var ext = Path.GetExtension(exercise.ImagePath).TrimStart('.').ToLower();
+                                if (ext == "jpg") ext = "jpeg";
+                                html.AppendLine($"<img src='data:image/{ext};base64,{base64}' class='exercise-img' alt='{exercise.Name}' />");
+                            }
+                            catch { /* Ignore image load error */ }
+                        }
+                        html.AppendLine("</td>");
+
+                        html.AppendLine("</tr></table>");
+                        html.AppendLine("</div>"); // End exercise-container
+                    }
+                }
+            }
+
+            // --- SECTION 2: SIMPLIFIED SUMMARY (TEXT ONLY) ---
+            html.AppendLine("<div class='summary-section'>");
+            html.AppendLine("<div class='summary-title'>RESUMEN SIMPLIFICADO (SOLO TEXTO)</div>");
+            
+            if (plan != null)
+            {
+                foreach (var day in plan)
+                {
+                    html.AppendLine($"<h3 style='color:#333; border-bottom:1px solid #ccc; margin-top:20px;'>{day.Name}</h3>");
+                    html.AppendLine("<ul>");
+                    foreach (var exercise in day.Exercises)
+                    {
+                        var seriesInfo = !string.IsNullOrWhiteSpace(exercise.SetsAndReps) ? $" - {exercise.SetsAndReps}" : "";
+                        // Plain text, no links, no images
+                        html.AppendLine($"<li><b>{exercise.Name}</b>{seriesInfo}</li>");
+                    }
+                    html.AppendLine("</ul>");
+                }
+            }
+            html.AppendLine("</div>");
+
+            // Footer
+            html.AppendLine("<br/><hr/>");
+            html.AppendLine("<p style='text-align:center; font-size:9pt; color:#666;'>Generado automticamente por GymRoutineGenerator</p>");
+
+            html.AppendLine("</body></html>");
+            return html.ToString();
         }
     }
 }

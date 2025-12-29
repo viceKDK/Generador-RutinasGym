@@ -163,6 +163,7 @@ namespace GymRoutineGenerator.Services
                         MuscleGroups = metadata?.MuscleGroups?.Length > 0 ? metadata.MuscleGroups : InferMuscleGroups(variant, info.ImagePath),
                         ImageData = info.ImageData,
                         ImagePath = info.ImagePath ?? string.Empty,
+                        VideoUrl = info.VideoUrl ?? string.Empty,
                         Source = info.Source ?? "BD Principal",
                         Keywords = metadata?.Keywords ?? Array.Empty<string>()
                     };
@@ -250,6 +251,7 @@ namespace GymRoutineGenerator.Services
                 MuscleGroups = exercise.MuscleGroups.ToArray(),
                 ImagePath = exercise.ImagePath,
                 ImageData = exercise.ImageData,
+                VideoUrl = exercise.VideoUrl,
                 Source = exercise.Source,
                 Keywords = exercise.Keywords.ToArray()
             };
@@ -403,6 +405,7 @@ namespace GymRoutineGenerator.Services
                 Description = info.Description ?? string.Empty,
                 ImageData = info.ImageData,
                 ImagePath = info.ImagePath ?? string.Empty,
+                VideoUrl = info.VideoUrl ?? string.Empty,
                 Source = info.Source ?? "BD Principal",
                 MuscleGroups = info.MuscleGroups?.Where(m => !string.IsNullOrWhiteSpace(m)).ToArray() ?? Array.Empty<string>(),
                 Keywords = info.Keywords ?? Array.Empty<string>()
@@ -621,6 +624,7 @@ namespace GymRoutineGenerator.Services
         public string[] MuscleGroups { get; set; } = Array.Empty<string>();
         public string ImagePath { get; set; } = string.Empty;
         public byte[]? ImageData { get; set; }
+        public string VideoUrl { get; set; } = string.Empty;
         public string Source { get; set; } = string.Empty;
         public string[] Keywords { get; set; } = Array.Empty<string>();
     }

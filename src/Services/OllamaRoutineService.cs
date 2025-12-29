@@ -560,7 +560,8 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                             SetsAndReps = formattedSeries,
                             Instructions = instructions,
                             ImageData = exerciseWithImage?.ImageData,
-                            ImagePath = exerciseWithImage?.ImagePath ?? ""
+                            ImagePath = exerciseWithImage?.ImagePath ?? "",
+                            VideoUrl = exerciseWithImage?.VideoUrl ?? ""
                         });
                     }
                     else
@@ -654,7 +655,8 @@ Debes generar EXACTAMENTE 5 EJERCICIOS en este orden OBLIGATORIO:
                                             SetsAndReps = "3 x 10",  // Por defecto
                                             Instructions = string.Empty,
                                             ImageData = availEx.ImageData,
-                                            ImagePath = availEx.ImagePath ?? ""
+                                            ImagePath = availEx.ImagePath ?? "",
+                                            VideoUrl = availEx.VideoUrl ?? ""
                                         });
 
                                         System.Diagnostics.Debug.WriteLine($"  âœ“ Matched (simple): {availEx.Name}");
